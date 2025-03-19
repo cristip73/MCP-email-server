@@ -1,6 +1,6 @@
 import { gmail_v1, google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { encodeEmailSubject, formatPlainTextWithLineBreaks, formatPlainTextToHtml } from './utils.js';
+import { encodeEmailSubject } from './utils.js';
 import { timeZoneOffset, formatTimestampWithOffset } from './timezone-utils.js';
 
 export interface PaginationOptions {
@@ -389,10 +389,10 @@ export class GmailClientWrapper {
     cc?: string[];
     inReplyTo?: string;
     references?: string[];
-    isHtml?: boolean;
   }): Promise<{ messageId: string; threadId?: string }> {
     try {
       const raw = await this.createEmailRaw(options);
+      
       const response = await this.gmail.users.messages.send({
         userId: this.userId,
         requestBody: {
@@ -407,6 +407,83 @@ export class GmailClientWrapper {
       };
     } catch (error) {
       throw new Error(`Failed to send message: ${error}`);
+    }
+  }
+
+  /**
+   * Send a multipart email message with both HTML and plain text versions
+   */
+  async sendMultipartMessage(options: {
+    to: string[];
+    subject: string;
+    textContent: string;
+    htmlContent: string;
+    threadId?: string;
+    from?: string;
+    cc?: string[];
+    inReplyTo?: string;
+    references?: string[];
+  }): Promise<{ messageId: string; threadId?: string }> {
+    try {
+      const encodedSubject = encodeEmailSubject(options.subject);
+      
+      const headers = [
+        `To: ${options.to.join(', ')}`,
+        `Subject: ${encodedSubject}`,
+        options.from ? `From: ${options.from}` : '',
+        options.cc?.length ? `Cc: ${options.cc.join(', ')}` : '',
+        options.inReplyTo ? `In-Reply-To: ${options.inReplyTo}` : '',
+        options.references?.length ? `References: ${options.references.join(' ')}` : '',
+        'MIME-Version: 1.0',
+      ].filter(Boolean);
+      
+      // Create boundary for multipart message
+      const boundary = `000000000000${Math.random().toString(16).substr(2, 8)}`;
+      headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+      
+      // Construct the multipart email
+      let email = headers.join('\r\n') + '\r\n\r\n';
+      
+      // Add plain text part
+      email += `--${boundary}\r\n`;
+      email += 'Content-Type: text/plain; charset=UTF-8\r\n';
+      email += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
+      email += options.textContent + '\r\n\r\n';
+      
+      // Add HTML part
+      email += `--${boundary}\r\n`;
+      email += 'Content-Type: text/html; charset=UTF-8\r\n';
+      email += 'Content-Transfer-Encoding: quoted-printable\r\n\r\n';
+      email += `<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+${options.htmlContent}
+</body>
+</html>\r\n\r\n`;
+      
+      // Close the multipart message
+      email += `--${boundary}--`;
+      
+      // Encode the entire email as base64url
+      const raw = Buffer.from(email).toString('base64url');
+      
+      const response = await this.gmail.users.messages.send({
+        userId: this.userId,
+        requestBody: {
+          raw,
+          threadId: options.threadId,
+        },
+      });
+
+      return {
+        messageId: response.data.id || '',
+        threadId: response.data.threadId || undefined,
+      };
+    } catch (error) {
+      throw new Error(`Failed to send multipart message: ${error}`);
     }
   }
 
@@ -454,21 +531,17 @@ export class GmailClientWrapper {
 
   /**
    * Encode the email content to handle UTF-8 characters correctly
-   * and ensure line breaks are properly preserved
    * @param content The original email content
-   * @param isHtml Whether the content is HTML
-   * @returns The encoded content with properly formatted line breaks
+   * @returns The encoded content in UTF-8 format
    */
-  private encodeEmailContent(content: string, isHtml: boolean = false): string {
-    if (!content) return '';
-    
-    // If it's HTML content, we don't need to modify line breaks
-    if (isHtml) {
+  private encodeEmailContent(content: string): string {
+    // Check if the content has non-ASCII characters
+    if (!/^[\x00-\x7F]*$/.test(content)) {
+      // Ensure Content-Transfer-Encoding is set correctly
+      // and all UTF-8 characters are kept intact
       return content;
     }
-
-    // For plain text content, ensure line breaks are normalized to CRLF format (\r\n)
-    return formatPlainTextWithLineBreaks(content);
+    return content;
   }
 
   private async createEmailRaw(options: {
@@ -479,15 +552,9 @@ export class GmailClientWrapper {
     cc?: string[];
     inReplyTo?: string;
     references?: string[];
-    isHtml?: boolean;
   }): Promise<string> {
     const encodedSubject = encodeEmailSubject(options.subject);
-    const encodedContent = this.encodeEmailContent(options.content, options.isHtml);
-    
-    // Determine content type based on isHtml flag
-    const contentType = options.isHtml 
-      ? 'Content-Type: text/html; charset=utf-8'
-      : 'Content-Type: text/plain; charset=utf-8';
+    const encodedContent = this.encodeEmailContent(options.content);
     
     const headers = [
       `To: ${options.to.join(', ')}`,
@@ -496,7 +563,7 @@ export class GmailClientWrapper {
       options.cc?.length ? `Cc: ${options.cc.join(', ')}` : '',
       options.inReplyTo ? `In-Reply-To: ${options.inReplyTo}` : '',
       options.references?.length ? `References: ${options.references.join(' ')}` : '',
-      contentType,
+      'Content-Type: text/plain; charset=utf-8',
       'Content-Transfer-Encoding: base64',
       'MIME-Version: 1.0',
     ].filter(Boolean).join('\r\n');
@@ -1006,54 +1073,6 @@ export class GmailClientWrapper {
       return attachments;
     } catch (error) {
       throw new Error(`Failed to list attachments for message ${messageId}: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Determine if the email content is HTML
-   * @param message The Gmail message
-   * @returns Boolean indicating if the content is HTML
-   */
-  isHtmlContent(message: gmail_v1.Schema$Message): boolean {
-    const parts = message.payload?.parts || [];
-    const htmlPart = parts.find(part => part.mimeType === 'text/html');
-    
-    // If there's an explicit HTML part, it's HTML content
-    if (htmlPart && htmlPart.body?.data) {
-      return true;
-    }
-    
-    // If there's no HTML part but the main payload has HTML, it's also HTML
-    if (message.payload?.mimeType === 'text/html' && message.payload.body?.data) {
-      return true;
-    }
-    
-    // Check if the plain text content contains HTML tags
-    const plainTextPart = parts.find(part => part.mimeType === 'text/plain');
-    if (plainTextPart?.body?.data) {
-      const content = Buffer.from(plainTextPart.body.data, 'base64').toString();
-      return /<html|<body|<div|<p|<span|<table|<a|<img|<br|<h[1-6]|<ul|<ol|<li/i.test(content);
-    }
-    
-    // If no content was found to be HTML, return false
-    return false;
-  }
-
-  /**
-   * Get raw message in full format
-   * @param messageId The ID of the message to retrieve
-   * @returns The raw message in full format
-   */
-  async getRawMessage(messageId: string): Promise<gmail_v1.Schema$Message> {
-    try {
-      const response = await this.gmail.users.messages.get({
-        userId: this.userId,
-        id: messageId,
-        format: 'full'
-      });
-      return response.data;
-    } catch (error) {
-      throw new Error(`Failed to get raw message: ${error}`);
     }
   }
 } 

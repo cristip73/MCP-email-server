@@ -20,61 +20,104 @@ export interface EmailOptions {
 }
 
 /**
- * Format the original email content as a quote in Gmail style
+ * Format the original email content as a quoted text using the '>' prefix style
+ * for plain text emails
  * @param originalContent The original email content to quote
  * @param fromName The name of the original sender
  * @param date The date of the original email
- * @param isHtml Whether the content should be formatted as HTML
- * @returns Formatted quoted content with proper styling based on format
+ * @returns Formatted quoted content with proper spacing and attribution
  */
-export function formatQuotedContent(
-  originalContent: string, 
-  fromName?: string, 
-  date?: string,
-  isHtml: boolean = false
-): string {
+export function formatQuotedContent(originalContent: string, fromName?: string, date?: string): string {
   if (!originalContent) return '';
   
-  // Create attribution line
-  const attribution = fromName || date 
-    ? `On ${date || '[date]'}, ${fromName || '[sender]'} wrote:` 
-    : '';
-  
-  if (isHtml) {
-    // Check if content is already HTML
-    const isAlreadyHtml = /<html|<body|<div|<p|<span|<table|<a|<img|<br|<h[1-6]|<ul|<ol|<li/i.test(originalContent);
-    
-    // Prepare content for HTML formatting
-    const htmlContent = isAlreadyHtml 
-      ? originalContent 
-      : originalContent.split('\n').map(line => line.trim() ? `<div>${line}</div>` : '<div><br></div>').join('');
-    
-    // Gmail style blockquote with vertical bar
-    return `
-      <div class="gmail_quote">
-        ${attribution ? `<div class="gmail_attr">${attribution}</div>` : ''}
-        <blockquote class="gmail_quote" 
-          style="margin:0 0 0 .8ex;border-left:1px solid #ccc;padding-left:1ex">
-          ${htmlContent}
-        </blockquote>
-      </div>
-    `;
+  // Add attribution line if sender and date are provided
+  let quotedContent = '';
+  if (fromName || date) {
+    quotedContent = `\n\nOn ${date || '[date]'}, ${fromName || '[sender]'} wrote:\n`;
   } else {
-    // Plain text formatting with > prefix for compatibility
-    let quotedContent = '\n\n';
-    
-    // Add attribution line if available
-    if (attribution) {
-      quotedContent += attribution + '\n';
-    }
-    
-    // Split the content by lines and add the '>' prefix to each line
-    const lines = originalContent.split('\n');
-    const quotedLines = lines.map(line => `> ${line}`);
-    
-    // Join the lines back together
-    return quotedContent + quotedLines.join('\n');
+    quotedContent = '\n\n';
   }
+  
+  // Split the content by lines and add the '>' prefix to each line
+  const lines = originalContent.split('\n');
+  const quotedLines = lines.map(line => `> ${line}`);
+  
+  // Join the lines back together
+  return quotedContent + quotedLines.join('\n');
+}
+
+/**
+ * Format the original email content as a Gmail-style HTML quote
+ * with a vertical bar and proper styling
+ * @param originalContent The original email content (can be HTML or plain text)
+ * @param fromName The name of the original sender
+ * @param date The date of the original email
+ * @returns Formatted HTML with Gmail-style quoting
+ */
+export function formatQuotedContentHtml(originalContent: string, fromName?: string, date?: string): string {
+  if (!originalContent) return '';
+  
+  // Check if the content is already HTML
+  const isHtml = originalContent.includes('<html') || 
+                 originalContent.includes('<body') || 
+                 originalContent.includes('<div') || 
+                 originalContent.includes('<p');
+  
+  // Prepare content - if it's plain text, convert to HTML with proper line breaks
+  let htmlContent = isHtml ? originalContent : originalContent
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  
+  // Create the attribution line
+  let attribution = '';
+  if (fromName || date) {
+    attribution = `<div class="gmail_attr">On ${date || '[date]'}, ${fromName || '[sender]'} wrote:<br></div>`;
+  }
+  
+  // Format in Gmail style with blockquote and vertical bar
+  return `
+<div><br></div>
+${attribution}
+<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">
+  ${htmlContent}
+</blockquote>`;
+}
+
+/**
+ * Create MIME multipart email content with both plain text and HTML parts
+ * @param textContent Plain text content of the email
+ * @param htmlContent HTML content of the email
+ * @returns Formatted MIME multipart content with proper boundaries
+ */
+export function createMultipartContent(textContent: string, htmlContent: string): string {
+  const boundary = `000000000000${Math.random().toString(16).substr(2, 8)}`;
+  
+  return `Content-Type: multipart/alternative; boundary="${boundary}"
+MIME-Version: 1.0
+
+--${boundary}
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+${textContent}
+
+--${boundary}
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+${htmlContent}
+</body>
+</html>
+
+--${boundary}--`;
 }
 
 /**
@@ -264,42 +307,4 @@ export function formatTimestamp(timestamp?: string): string {
     // If parsing fails, return the raw timestamp
     return `Received: ${timestamp}`;
   }
-}
-
-/**
- * Format plain text to HTML, converting line breaks to proper HTML elements
- * @param text Plain text content with line breaks
- * @returns HTML formatted content with preserved formatting
- */
-export function formatPlainTextToHtml(text: string): string {
-  if (!text) return '';
-  
-  // First normalize line breaks to \n
-  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  
-  // Convert double line breaks to paragraphs and single line breaks to <br>
-  const paragraphs = normalizedText.split(/\n\s*\n/);
-  
-  return paragraphs.map(paragraph => {
-    if (!paragraph.trim()) return '<p>&nbsp;</p>';
-    
-    // Convert single line breaks to <br>
-    const formattedParagraph = paragraph.replace(/\n/g, '<br>\n');
-    return `<p>${formattedParagraph}</p>`;
-  }).join('\n');
-}
-
-/**
- * Normalize line breaks in plain text content to ensure proper email formatting
- * @param text Plain text content with possibly inconsistent line breaks
- * @returns Text with properly normalized line breaks for email
- */
-export function formatPlainTextWithLineBreaks(text: string): string {
-  if (!text) return '';
-  
-  // First normalize all line breaks to \n
-  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  
-  // Then convert all \n to standard email line break format \r\n
-  return normalizedText.replace(/\n/g, '\r\n');
 } 
