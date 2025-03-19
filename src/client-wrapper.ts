@@ -1,6 +1,6 @@
 import { gmail_v1, google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { encodeEmailSubject } from './utils.js';
+import { encodeEmailSubject, formatPlainTextWithLineBreaks, formatPlainTextToHtml } from './utils.js';
 import { timeZoneOffset, formatTimestampWithOffset } from './timezone-utils.js';
 
 export interface PaginationOptions {
@@ -389,6 +389,7 @@ export class GmailClientWrapper {
     cc?: string[];
     inReplyTo?: string;
     references?: string[];
+    isHtml?: boolean;
   }): Promise<{ messageId: string; threadId?: string }> {
     try {
       const raw = await this.createEmailRaw(options);
@@ -453,17 +454,21 @@ export class GmailClientWrapper {
 
   /**
    * Encode the email content to handle UTF-8 characters correctly
+   * and ensure line breaks are properly preserved
    * @param content The original email content
-   * @returns The encoded content in UTF-8 format
+   * @param isHtml Whether the content is HTML
+   * @returns The encoded content with properly formatted line breaks
    */
-  private encodeEmailContent(content: string): string {
-    // Check if the content has non-ASCII characters
-    if (!/^[\x00-\x7F]*$/.test(content)) {
-      // Ensure Content-Transfer-Encoding is set correctly
-      // and all UTF-8 characters are kept intact
+  private encodeEmailContent(content: string, isHtml: boolean = false): string {
+    if (!content) return '';
+    
+    // If it's HTML content, we don't need to modify line breaks
+    if (isHtml) {
       return content;
     }
-    return content;
+
+    // For plain text content, ensure line breaks are normalized to CRLF format (\r\n)
+    return formatPlainTextWithLineBreaks(content);
   }
 
   private async createEmailRaw(options: {
@@ -474,9 +479,15 @@ export class GmailClientWrapper {
     cc?: string[];
     inReplyTo?: string;
     references?: string[];
+    isHtml?: boolean;
   }): Promise<string> {
     const encodedSubject = encodeEmailSubject(options.subject);
-    const encodedContent = this.encodeEmailContent(options.content);
+    const encodedContent = this.encodeEmailContent(options.content, options.isHtml);
+    
+    // Determine content type based on isHtml flag
+    const contentType = options.isHtml 
+      ? 'Content-Type: text/html; charset=utf-8'
+      : 'Content-Type: text/plain; charset=utf-8';
     
     const headers = [
       `To: ${options.to.join(', ')}`,
@@ -485,7 +496,7 @@ export class GmailClientWrapper {
       options.cc?.length ? `Cc: ${options.cc.join(', ')}` : '',
       options.inReplyTo ? `In-Reply-To: ${options.inReplyTo}` : '',
       options.references?.length ? `References: ${options.references.join(' ')}` : '',
-      'Content-Type: text/plain; charset=utf-8',
+      contentType,
       'Content-Transfer-Encoding: base64',
       'MIME-Version: 1.0',
     ].filter(Boolean).join('\r\n');
@@ -995,6 +1006,54 @@ export class GmailClientWrapper {
       return attachments;
     } catch (error) {
       throw new Error(`Failed to list attachments for message ${messageId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Determine if the email content is HTML
+   * @param message The Gmail message
+   * @returns Boolean indicating if the content is HTML
+   */
+  isHtmlContent(message: gmail_v1.Schema$Message): boolean {
+    const parts = message.payload?.parts || [];
+    const htmlPart = parts.find(part => part.mimeType === 'text/html');
+    
+    // If there's an explicit HTML part, it's HTML content
+    if (htmlPart && htmlPart.body?.data) {
+      return true;
+    }
+    
+    // If there's no HTML part but the main payload has HTML, it's also HTML
+    if (message.payload?.mimeType === 'text/html' && message.payload.body?.data) {
+      return true;
+    }
+    
+    // Check if the plain text content contains HTML tags
+    const plainTextPart = parts.find(part => part.mimeType === 'text/plain');
+    if (plainTextPart?.body?.data) {
+      const content = Buffer.from(plainTextPart.body.data, 'base64').toString();
+      return /<html|<body|<div|<p|<span|<table|<a|<img|<br|<h[1-6]|<ul|<ol|<li/i.test(content);
+    }
+    
+    // If no content was found to be HTML, return false
+    return false;
+  }
+
+  /**
+   * Get raw message in full format
+   * @param messageId The ID of the message to retrieve
+   * @returns The raw message in full format
+   */
+  async getRawMessage(messageId: string): Promise<gmail_v1.Schema$Message> {
+    try {
+      const response = await this.gmail.users.messages.get({
+        userId: this.userId,
+        id: messageId,
+        format: 'full'
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get raw message: ${error}`);
     }
   }
 } 

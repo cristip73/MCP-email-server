@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { GmailClientWrapper } from "../client-wrapper.js";
-import { createEmailMessage } from "../utils.js";
+import { 
+  createEmailMessage, 
+  formatQuotedContent, 
+  formatPlainTextToHtml 
+} from "../utils.js";
 
 // Schema definition
 const SendEmailSchema = z.object({
@@ -72,11 +76,19 @@ export const sendEmailTool: Tool = {
     // Variabile pentru referințe și adresa expeditorului
     let references: string[] = [];
     let fromAddress: string | undefined = params.from;
+    let content = params.body;
+    let isHtml = false;
     
     // If this is a reply to an existing email, get the details of it
     if (params.inReplyTo) {
       // Get the details of the original email
       const originalEmail = await client.getMessage(params.inReplyTo);
+      
+      // Get the raw message to determine if it's HTML
+      const originalMessage = await client.getRawMessage(params.inReplyTo);
+      
+      // Check if the original content is HTML
+      isHtml = client.isHtmlContent(originalMessage);
       
       // Extract existing references for correct threading
       if (originalEmail.headers) {
@@ -95,13 +107,44 @@ export const sendEmailTool: Tool = {
       if (!fromAddress) {
         fromAddress = await client.determineReplyFromAddress(originalEmail);
       }
-    } else if (!fromAddress) {
-      // For new emails (not replies), use the default address if none was specified
-      const defaultAlias = await client.getDefaultSendAsAlias();
-      if (defaultAlias && defaultAlias.sendAsEmail) {
-        fromAddress = defaultAlias.displayName ? 
-          `${defaultAlias.displayName} <${defaultAlias.sendAsEmail}>` : 
-          defaultAlias.sendAsEmail;
+      
+      // Format the original email content as a quote and add it to the reply
+      const fromName = originalEmail.headers?.find(h => h.name?.toLowerCase() === 'from')?.value || undefined;
+      const date = originalEmail.timestamp;
+      
+      // Format the user's reply body if needed for HTML
+      let formattedBody = params.body;
+      if (isHtml) {
+        formattedBody = formatPlainTextToHtml(params.body);
+      }
+      
+      // Add the quoted content to the reply body
+      const quotedContent = formatQuotedContent(originalEmail.content, fromName, date, isHtml);
+      content = formattedBody + quotedContent;
+    } else {
+      // For new emails (not replies)
+      
+      // Verificăm dacă conținutul pare să conțină HTML
+      isHtml = /<html|<body|<div|<p|<span|<table|<a|<img|<br|<h[1-6]|<ul|<ol|<li/i.test(params.body);
+      
+      // If it contains HTML, ensure we're using proper HTML formatting
+      if (isHtml) {
+        // Keep the content as is, it's already HTML
+        content = params.body;
+      } else {
+        // It's plain text, no special formatting needed here
+        // The line breaks will be normalized in encodeEmailContent
+        content = params.body;
+      }
+      
+      if (!fromAddress) {
+        // For new emails, use the default address if none was specified
+        const defaultAlias = await client.getDefaultSendAsAlias();
+        if (defaultAlias && defaultAlias.sendAsEmail) {
+          fromAddress = defaultAlias.displayName ? 
+            `${defaultAlias.displayName} <${defaultAlias.sendAsEmail}>` : 
+            defaultAlias.sendAsEmail;
+        }
       }
     }
     
@@ -113,12 +156,13 @@ export const sendEmailTool: Tool = {
     const result = await client.sendMessage({
       to: filteredTo,
       subject: params.subject,
-      content: params.body,
+      content: content,
       cc: filteredCc,
       threadId: params.threadId,
       from: fromAddress,
       inReplyTo: params.inReplyTo,
-      references: references.length > 0 ? references : undefined
+      references: references.length > 0 ? references : undefined,
+      isHtml: isHtml
     });
     
     return {
@@ -193,6 +237,12 @@ export const replyAllEmailTool: Tool = {
       // Get the details of the original email
       const originalEmail = await client.getMessage(params.messageId);
       
+      // Get the raw message to determine if it's HTML
+      const originalMessage = await client.getRawMessage(params.messageId);
+      
+      // Check if the original content is HTML
+      const isHtml = client.isHtmlContent(originalMessage);
+      
       // If there is no threadId, we cannot make a correct reply
       if (!originalEmail.threadId) {
         throw new Error("Cannot reply to message: no thread ID available");
@@ -265,16 +315,31 @@ export const replyAllEmailTool: Tool = {
         subject = `Re: ${subject}`;
       }
       
+      // Format the original email content as a quote and add it to the reply
+      const fromName = originalEmail.from || undefined;
+      const date = originalEmail.timestamp;
+      
+      // Format the user's reply body if needed for HTML
+      let formattedBody = params.body;
+      if (isHtml) {
+        formattedBody = formatPlainTextToHtml(params.body);
+      }
+      
+      // Add the quoted content to the reply body
+      const quotedContent = formatQuotedContent(originalEmail.content, fromName, date, isHtml);
+      const content = formattedBody + quotedContent;
+      
       // Send the reply to all
       const result = await client.sendMessage({
         to: filteredTo,
         cc,
         subject,
-        content: params.body,
+        content: content,
         threadId: originalEmail.threadId,
         from: fromAddress,
         inReplyTo: params.messageId,
-        references: references.length > 0 ? references : undefined
+        references: references.length > 0 ? references : undefined,
+        isHtml: isHtml
       });
       
       return {
@@ -385,6 +450,12 @@ export const forwardEmailTool: Tool = {
       // Get the details of the original email
       const originalEmail = await client.getMessage(params.messageId);
       
+      // Get the raw message to determine if it's HTML
+      const originalMessage = await client.getRawMessage(params.messageId);
+      
+      // Check if the original content is HTML
+      const isHtml = client.isHtmlContent(originalMessage);
+      
       // Prepare the subject with the "Fwd:" prefix if it doesn't already exist
       let subject = originalEmail.subject;
       if (!subject.toLowerCase().startsWith('fwd:')) {
@@ -408,25 +479,52 @@ export const forwardEmailTool: Tool = {
       
       // Add additional content if it exists
       if (params.additionalContent) {
-        content += params.additionalContent + '\n\n';
+        if (isHtml) {
+          content += formatPlainTextToHtml(params.additionalContent) + '<br><br>';
+        } else {
+          content += params.additionalContent + '\n\n';
+        }
       }
       
-      // Add the original email headers
-      content += '---------- Forwarded message ---------\n';
-      content += `From: ${originalEmail.from}\n`;
-      content += `Date: ${originalEmail.timestamp || 'Unknown'}\n`;
-      content += `Subject: ${originalEmail.subject}\n`;
-      content += `To: ${originalEmail.to.join(', ')}\n`;
-      
-      // Add the CC header if it exists
-      if (originalEmail.cc && originalEmail.cc.length > 0) {
-        content += `Cc: ${originalEmail.cc.join(', ')}\n`;
+      if (isHtml) {
+        // HTML format for forwarded email
+        content += '<div class="gmail_forwarded">';
+        content += '<div>---------- Forwarded message ---------</div>';
+        content += `<div><b>From:</b> ${originalEmail.from}</div>`;
+        content += `<div><b>Date:</b> ${originalEmail.timestamp || 'Unknown'}</div>`;
+        content += `<div><b>Subject:</b> ${originalEmail.subject}</div>`;
+        content += `<div><b>To:</b> ${originalEmail.to.join(', ')}</div>`;
+        
+        // Add the CC header if it exists
+        if (originalEmail.cc && originalEmail.cc.length > 0) {
+          content += `<div><b>Cc:</b> ${originalEmail.cc.join(', ')}</div>`;
+        }
+        
+        content += '<br>';
+        
+        // Add the original email content with proper formatting
+        // Use the content as-is since it's already HTML
+        content += originalEmail.content || '';
+        content += '</div>';
+      } else {
+        // Plain text format for forwarded email
+        content += '---------- Forwarded message ---------\n';
+        content += `From: ${originalEmail.from}\n`;
+        content += `Date: ${originalEmail.timestamp || 'Unknown'}\n`;
+        content += `Subject: ${originalEmail.subject}\n`;
+        content += `To: ${originalEmail.to.join(', ')}\n`;
+        
+        // Add the CC header if it exists
+        if (originalEmail.cc && originalEmail.cc.length > 0) {
+          content += `Cc: ${originalEmail.cc.join(', ')}\n`;
+        }
+        
+        content += '\n';
+        
+        // Add the original email content with proper formatting
+        const originalContent = originalEmail.content || '';
+        content += originalContent;
       }
-      
-      content += '\n';
-      
-      // Add the original email content
-      content += originalEmail.content || '';
       
       // Filter out own addresses from recipients
       const filteredTo = await client.filterOutOwnAddresses(params.to);
@@ -441,6 +539,7 @@ export const forwardEmailTool: Tool = {
         // Add the original threadId to maintain the conversation
         threadId: originalEmail.threadId,
         from: fromAddress,
+        isHtml: isHtml
       });
       
       return {
