@@ -64,25 +64,25 @@ export function formatQuotedContentHtml(originalContent: string, fromName?: stri
                  originalContent.includes('<p');
   
   // Prepare content - if it's plain text, convert to HTML with proper line breaks
-  let htmlContent = isHtml ? originalContent : originalContent
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
+  // Ensure we wrap in div with dir="ltr" attribute as Gmail does
+  let htmlContent = isHtml 
+    ? originalContent 
+    : `<div dir="ltr">${originalContent.replace(/&/g, '&amp;')
+                                       .replace(/</g, '&lt;')
+                                       .replace(/>/g, '&gt;')
+                                       .replace(/\n/g, '<br>')}</div>`;
   
-  // Create the attribution line
+  // Create the attribution line with specific Gmail format - avoid unnecessary whitespace
   let attribution = '';
   if (fromName || date) {
-    attribution = `<div class="gmail_attr">On ${date || '[date]'}, ${fromName || '[sender]'} wrote:<br></div>`;
+    // Use the exact format that Gmail uses for attribution
+    attribution = `<div dir="ltr" class="gmail_attr">On ${date || '[date]'}, ${fromName || '[sender]'} wrote:<br></div>`;
   }
   
-  // Format in Gmail style with blockquote and vertical bar
-  return `
-<div><br></div>
-${attribution}
-<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">
-  ${htmlContent}
-</blockquote>`;
+  // Format in Gmail style with container and blockquote
+  // IMPORTANT: Avoid unnecessary whitespace/indentation which can affect rendering
+  // Match the exact format from working examples
+  return `<br><div class="gmail_quote gmail_quote_container">${attribution}<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">${htmlContent}</blockquote></div>`;
 }
 
 /**
