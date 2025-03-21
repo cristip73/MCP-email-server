@@ -1,6 +1,78 @@
 # Email MCP Server
 
-A Model Context Protocol (MCP) server that enables Claude AI to interact with Gmail, providing capabilities for reading, searching, and sending emails through a standardized interface.
+A Model Context Protocol (MCP) server that enables Claude Desktop App (or any other app that supports MCP) to interact with Gmail, providing capabilities for reading, searching, and sending emails through a standardized interface.
+
+## Installation
+
+### Prerequisites
+
+- Node.js 16 or later
+- npm
+
+### Setup Steps
+
+1. **Create a Google Cloud Project and enable the Gmail API**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project
+   - Enable the Gmail API
+   - Create OAuth credentials (Desktop application)
+   - Download the credentials JSON file as `gcp-oauth.keys.json`
+
+2. **Clone and Install**:
+   ```bash
+   git clone https://github.com/cristip73/MCP-email-server.git
+   cd MCP-email-server
+   npm install
+   ```
+
+3. **Build the Server**:
+   ```bash
+   npm run build
+   ```
+
+4. **Authenticate with Gmail**:
+   ```bash
+   npm run auth
+   ```
+   This will open a browser window to authenticate with your Google account.
+
+5. **Make Package available to Claude**:
+   ```bash
+   npm link
+   ```
+
+## Usage with Claude
+
+### Claude Desktop
+
+Add the MCP server to Claude Desktop:
+
+Go into cloud settings then go into developer mode then choose edit config and edit the JSON file
+
+Example of a local config file for Claude Desktop:
+```json
+{
+  "mcpServers": {
+    "email-server": {
+      "command": "node",
+      "args": ["/path/to/email-server/build/index.js"],
+      "env": {
+          "TIME_ZONE": "GMT+2",
+          "DEFAULT_ATTACHMENTS_FOLDER": "/Users/username/CLAUDE/Attachments"
+      }     
+    }
+  }
+}
+```
+IMPORTANT: Set the DEFAULT_ATTACHMENTS_FOLDER to a valid path on your system.
+
+IMPORTANT: Set the TIME_ZONE to your local timezone in GMT format. Eg: GMT+2, GMT-5, etc. Otherwise the date and time of the emails will be off, it is set to GMT+0 by default by Gmail.
+
+
+For Claude Code Editor, you can add the server by running the following command:
+```bash
+claude mcp add email-server -- /path/to/email-server/build/index.js
+```
 
 ## Purpose
 
@@ -30,6 +102,7 @@ src/
     ├── email-search-tools.ts # Tools for searching and filtering emails
     ├── email-label-tools.ts # Tools for managing labels and message states
     ├── email-attachment-tools.ts # Tools for listing and saving attachments
+    ├── email-draft-tools.ts # Tools for managing email drafts
     └── timezone-tool.ts     # Tool for verifying timezone configuration
 ```
 
@@ -44,18 +117,17 @@ src/
 - **timezone-utils.ts**: Handles timezone parsing, conversion, and formatting for consistent date handling
 - **tools/**: Contains domain-specific implementations for email operations
   - **email-read-tools.ts**: Tools for reading emails and extracting content
-  - **email-send-tools.ts**: Tools for sending emails
+  - **email-send-tools.ts**: Tools for sending emails, replying and forwarding
   - **email-search-tools.ts**: Tools for searching and filtering emails
   - **email-label-tools.ts**: Tools for managing labels and message states (read/unread, archive/unarchive)
   - **email-attachment-tools.ts**: Tools for listing attachments and saving them securely to disk
+  - **email-draft-tools.ts**: Tools for creating, updating, listing, and sending email drafts
   - **timezone-tool.ts**: Tool for verifying timezone configuration and comparing time formats
 
 ## Configuration
 
 The server supports the following configuration:
 
-- `GMAIL_OAUTH_PATH`: Path to the OAuth keys file (default: `~/.email-mcp/gcp-oauth.keys.json`)
-- `GMAIL_CREDENTIALS_PATH`: Path to the OAuth credentials file (default: `~/.email-mcp/credentials.json`)
 - `TIME_ZONE`: Timezone configuration in format like 'GMT+2' or 'GMT-5' (default: 'GMT+0')
 - `DEFAULT_ATTACHMENTS_FOLDER`: Path to the directory where email attachments can be saved (e.g., '/Users/username/CLAUDE/attachments')
 
@@ -69,6 +141,14 @@ The server supports the following configuration:
 - **Forward**: Forward emails to other recipients with original headers and formatting
 - **Read Email**: Retrieve and display email content, headers, and attachments
 - **Search Emails**: Search emails using Gmail's query syntax with enhanced features
+
+### Draft Management
+
+- **Create Drafts**: Save email drafts for later editing or sending
+- **List Drafts**: View all saved drafts with pagination support
+- **Update Drafts**: Edit existing drafts with full content modification
+- **Send Drafts**: Convert saved drafts to sent emails
+- **Delete Drafts**: Remove drafts that are no longer needed
 
 ### Advanced Functionality
 
@@ -106,80 +186,9 @@ The server supports the following configuration:
 - **Path Security**: Validation and normalization to prevent path traversal attacks
 - **File Integrity**: Verification of saved files with size validation and error reporting
 - **Automatic Selection**: Intelligent handling when no specific attachment ID is provided
-
-## Installation
-
-### Prerequisites
-
-- Node.js 16 or later
-- npm
-- A Google Cloud Project with Gmail API enabled
-- OAuth credentials for Gmail API
-
-### Setup Steps
-
-1. **Create a Google Cloud Project and enable the Gmail API**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project
-   - Enable the Gmail API
-   - Create OAuth credentials (Desktop application)
-   - Download the credentials JSON file as `gcp-oauth.keys.json`
-
-2. **Clone and Install**:
-   ```bash
-   git clone https://github.com/your-username/email-mcp-server.git
-   cd email-mcp-server
-   npm install
-   ```
-
-3. **Build the Server**:
-   ```bash
-   npm run build
-   ```
-
-4. **Authenticate with Gmail**:
-   ```bash
-   npm run auth
-   ```
-   This will open a browser window to authenticate with your Google account.
-
-5. **Install Globally** (Optional):
-   ```bash
-   npm link
-   ```
-
-## Usage with Claude
-
-### Claude in Cursor
-
-Configure the MCP server in Cursor settings by adding the path to the server executable.
-
-### Claude Desktop
-
-Add the MCP server to Claude Desktop:
-
-```bash
-claude mcp add email-server -- /path/to/email-server/build/index.js
-```
-
-Example of a local config file for Claude Desktop:
-```json
-{
-  "mcpServers": {
-    "email-server": {
-      "command": "node",
-      "args": ["/path/to/email-server/build/index.js"],
-      "env": {
-          "TIME_ZONE": "GMT+2",
-          "DEFAULT_ATTACHMENTS_FOLDER": "/Users/username/CLAUDE/Attachments"
-      }     
-    }
-  }
-}
-```
-IMPORTANT: Set the DEFAULT_ATTACHMENTS_FOLDER to a valid path on your system.
-
-IMPORTANT: Set the TIME_ZONE to your local timezone.
+- **Multiple Attachments**: Support for emails with multiple attachments
+- **Folder Creation**: Automatic creation of necessary directories when saving attachments
+- **Error Handling**: Comprehensive error handling for failed attachment operations
 
 ## Available Tools
 
@@ -401,6 +410,124 @@ Move a message to trash.
 Parameters:
 - `messageId`: ID of the message to move to trash (required)
 
+### Draft Management Tools
+
+#### Create Draft
+```
+create_draft
+```
+Create a new draft email without sending it.
+
+Parameters:
+- `to`: Array of recipient email addresses (required)
+- `subject`: Email subject (required)
+- `body`: Email body content (required)
+- `cc`: Array of CC recipients
+- `bcc`: Array of BCC recipients
+- `from`: Specific send-as email address to use as sender
+
+#### Get Draft
+```
+get_draft
+```
+Retrieve the contents of a specific draft.
+
+Parameters:
+- `draftId`: ID of the draft to retrieve (required)
+
+#### List Drafts
+```
+list_drafts
+```
+List all drafts in the email account.
+
+Parameters:
+- `maxResults`: Maximum number of drafts to return (default: 20)
+- `pageToken`: Token for the next page of results
+- `query`: Search filter for drafts
+
+#### Update Draft
+```
+update_draft
+```
+Update the content of an existing draft.
+
+Parameters:
+- `draftId`: ID of the draft to update (required)
+- `to`: New list of recipient email addresses (required)
+- `subject`: New email subject (required)
+- `body`: New email body content (required)
+- `cc`: New list of CC recipients
+- `bcc`: New list of BCC recipients
+- `from`: New specific send-as email address to use as sender
+
+#### Delete Draft
+```
+delete_draft
+```
+Permanently delete a draft.
+
+Parameters:
+- `draftId`: ID of the draft to delete (required)
+
+#### Send Draft
+```
+send_draft
+```
+Send an existing draft.
+
+Parameters:
+- `draftId`: ID of the draft to send (required)
+
+### Time Zone Tool
+
+#### Get Timezone Info
+```
+get_timezone_info
+```
+Display information about the configured timezone in the system.
+
+Parameters: None
+
+Returns:
+- Configured timezone (from the TIME_ZONE variable)
+- Calculated offset in hours
+- Current date and time adjusted to the timezone
+- Current date and time in UTC for comparison
+
+### Attachment Management Tools
+
+#### List Attachments
+```
+list_attachments
+```
+List all attachments in an email.
+
+Parameters:
+- `messageId`: ID of the message for which to list attachments (required)
+
+Returns:
+- List of all attachments with their details (name, type, size)
+- Count of attachments in the email
+
+#### Save Attachment
+```
+save_attachment
+```
+Save an attachment from an email to the configured DEFAULT_ATTACHMENTS_FOLDER.
+
+Parameters:
+- `messageId`: ID of the message containing the attachment (required)
+- `attachmentId`: ID of the attachment (optional if the message has only one attachment)
+- `targetPath`: Filename or relative path where the attachment will be saved (will be saved inside the DEFAULT_ATTACHMENTS_FOLDER)
+
+The tool automatically:
+- Downloads the attachment
+- Saves it to the specified path within DEFAULT_ATTACHMENTS_FOLDER
+- Validates file integrity
+- Creates necessary directories if they don't exist
+- Prevents path traversal attacks (all files are saved within DEFAULT_ATTACHMENTS_FOLDER)
+
 ## Example Prompts
 
 - "Send an email to john@example.com with subject 'Meeting Tomorrow'"
@@ -413,6 +540,14 @@ Parameters:
 - "Mark this email as unread"
 - "Archive all emails from this newsletter"
 - "Move this email to my 'Important' label"
+- "Create a draft to the team about the upcoming meeting"
+- "Show me all my saved drafts"
+- "Update my draft to include new information"
+- "Send the draft I created earlier"
+- "Delete the draft that I no longer need"
+- "What's my current timezone configuration?"
+- "Save the attachment from this email to my documents folder"
+- "Forward this report to the management team"
 
 ## Contributing
 
