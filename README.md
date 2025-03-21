@@ -47,9 +47,12 @@ A Model Context Protocol (MCP) server that enables Claude Desktop App (or any ot
 
 Add the MCP server to Claude Desktop:
 
-Go into cloud settings then go into developer mode then choose edit config and edit the JSON file
+Go into Claude Desktop settings then go into Developer Mode then choose Edit Config and edit the JSON file
 
-Example of a local config file for Claude Desktop:
+#### Example of a local config file for Claude Desktop. 
+
+If you have multiple MCPs be careful with you syntax. You should add them under "mcpServers" not copy the whole section below. Ask AI for help if you are unsure.
+
 ```json
 {
   "mcpServers": {
@@ -67,6 +70,8 @@ Example of a local config file for Claude Desktop:
 IMPORTANT: Set the DEFAULT_ATTACHMENTS_FOLDER to a valid path on your system.
 
 IMPORTANT: Set the TIME_ZONE to your local timezone in GMT format. Eg: GMT+2, GMT-5, etc. Otherwise the date and time of the emails will be off, it is set to GMT+0 by default by Gmail.
+
+The server will work also without any TIME_ZONE or DEFAULT_ATTACHMENTS_FOLDER, but your timezone will be off and you will not be able to save attachments.
 
 
 For Claude Code Editor, you can add the server by running the following command:
