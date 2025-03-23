@@ -1,4 +1,4 @@
-# Email MCP Server
+# Gmail MCP Server
 
 A Model Context Protocol (MCP) server that enables Claude Desktop App (or any other app that supports MCP) to interact with Gmail, providing capabilities for reading, searching, and sending emails through a standardized interface.
 
