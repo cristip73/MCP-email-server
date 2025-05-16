@@ -146,7 +146,7 @@ export const saveAttachmentTool: Tool = {
       },
       attachmentId: {
         type: "string",
-        description: "ID of the attachment (optional if the message has only one attachment)"
+        description: "ID of the attachment or the filename (e.g., 'f_mamj3yyo1' or 'document.pdf'). Optional if the message has only one attachment."
       },
       targetPath: {
         type: "string",
@@ -195,15 +195,9 @@ export const saveAttachmentTool: Tool = {
         throw new Error('No attachments found in this message');
       }
       
-      console.error(`Target attachment ID: ${attachmentId}`);
+      console.error(`Target attachment ID or filename: ${attachmentId}`);
       
-      // Check if the specified ID exists in the attachment list
-      const attachmentExists = allAttachments.some(att => att.id === attachmentId);
-      if (!attachmentExists) {
-        console.error(`Warning: Specified attachment ID ${attachmentId} not found in attachment list. Available IDs: ${allAttachments.map(a => a.id).join(', ')}`);
-      }
-      
-      // Get the attachment
+      // The enhanced getAttachment method will handle search by ID or filename
       const attachment = await client.getAttachment(params.messageId, attachmentId!);
       console.error(`Retrieved attachment: ${attachment.filename}, Size: ${attachment.size} bytes, Type: ${attachment.mimeType}`);
       
@@ -239,7 +233,7 @@ export const saveAttachmentTool: Tool = {
       // Return the operation result
       return {
         messageId: params.messageId,
-        attachmentId: attachmentId,
+        attachmentId: attachment.id, // Return actual ID used
         filename: attachment.filename,
         mimeType: attachment.mimeType,
         size: attachment.size,

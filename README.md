@@ -584,11 +584,11 @@ Save an attachment from an email to the configured DEFAULT_ATTACHMENTS_FOLDER.
 
 Parameters:
 - `messageId`: ID of the message containing the attachment (required)
-- `attachmentId`: ID of the attachment (optional if the message has only one attachment)
+- `attachmentId`: ID of the attachment (like 'f_mamj3yyo1') OR the filename of the attachment (like 'document.pdf'). Optional if the message has only one attachment.
 - `targetPath`: Filename or relative path where the attachment will be saved (will be saved inside the DEFAULT_ATTACHMENTS_FOLDER)
 
 The tool automatically:
-- Downloads the attachment
+- Downloads the attachment (can find it by ID or filename)
 - Saves it to the specified path within DEFAULT_ATTACHMENTS_FOLDER
 - Validates file integrity
 - Creates necessary directories if they don't exist
