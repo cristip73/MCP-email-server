@@ -1,0 +1,41 @@
+# Source files (compiled code is in build/)
+src/
+
+# Development and testing
+node_modules/
+.cursorrules
+.vscode/
+.idea/
+.github/
+.env
+.env.*
+*.log
+*.lock
+*.tgz
+*.zip
+*.tar.gz
+
+# User credentials (should never be published)
+gcp-oauth.keys.json
+credentials.json
+
+# Git files
+.git/
+.gitignore
+
+# Documentation files that don't need to be in the package
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+CHANGELOG.md
+
+# Configuration files
+tsconfig.json
+.eslintrc.json
+.eslintignore
+.prettierrc
+.prettierignore 
+
+.cursorrules
+
+/Z_DOCS

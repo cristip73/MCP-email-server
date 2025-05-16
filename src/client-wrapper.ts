@@ -935,93 +935,114 @@ ${options.htmlContent}
         throw new Error('Message not found or has no payload');
       }
 
-      // Recursive function to find the attachment part
-      const findAttachmentPart = (parts: gmail_v1.Schema$MessagePart[] | undefined, id: string): gmail_v1.Schema$MessagePart | null => {
-        if (!parts) return null;
+      // Track all found attachments to help with debugging and search by filename
+      const foundAttachments: Array<{id: string, filename: string, part: gmail_v1.Schema$MessagePart}> = [];
+
+      // Recursive function to find the attachment part and track all attachments
+      const findAttachmentPartsRecursive = (parts: gmail_v1.Schema$MessagePart[] | undefined): void => {
+        if (!parts) return;
         
         for (const part of parts) {
-          if (part.body?.attachmentId === id) {
-            return part;
-          }
-          
-          // If this ID doesn't match but the part has a filename, it might be an attachment
-          // with a different ID. In this case, we'll display the ID from this part for comparison
+          // Add all attachments to the tracking array
           if (part.filename && part.filename.trim() !== '' && part.body?.attachmentId) {
-            console.error(`Found attachment with filename "${part.filename}" and ID "${part.body.attachmentId}"`);
+            foundAttachments.push({
+              id: part.body.attachmentId,
+              filename: part.filename,
+              part: part
+            });
+            console.error(`Found attachment: "${part.filename}" with ID "${part.body.attachmentId}"`);
           }
           
           // Recursively search in subparts
           if (part.parts) {
-            const found = findAttachmentPart(part.parts, id);
-            if (found) return found;
+            findAttachmentPartsRecursive(part.parts);
           }
         }
-        return null;
       };
 
-      // Search for the attachment part
-      const attachmentPart = findAttachmentPart(message.data.payload.parts, attachmentId);
-
-      // If we don't find the attachment with the provided ID, we'll try to use an available attachment (if it exists)
-      if (!attachmentPart) {
-        console.error(`Attachment part with ID "${attachmentId}" not found. Looking for available attachments...`);
-        
-        // Find all available attachments
-        let availableAttachmentPart: gmail_v1.Schema$MessagePart | null = null;
-        const findAnyAttachment = (parts: gmail_v1.Schema$MessagePart[] | undefined): gmail_v1.Schema$MessagePart | null => {
-          if (!parts) return null;
-          
-          for (const part of parts) {
-            if (part.filename && part.filename.trim() !== '' && part.body?.attachmentId) {
-              return part;
-            }
-            
-            if (part.parts) {
-              const found = findAnyAttachment(part.parts);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        
-        availableAttachmentPart = findAnyAttachment(message.data.payload.parts);
-        
-        if (availableAttachmentPart) {
-          console.error(`Using available attachment with filename "${availableAttachmentPart.filename}" and ID "${availableAttachmentPart.body?.attachmentId}"`);
-          // Replace the attachment ID with the found one
-          attachmentId = availableAttachmentPart.body?.attachmentId || '';
-        } else {
-          throw new Error('No attachment found in this message');
-        }
-      } else {
-        console.error(`Found attachment part with filename "${attachmentPart.filename}" and ID "${attachmentPart.body?.attachmentId}"`);
+      // First, collect all attachments from the message
+      findAttachmentPartsRecursive(message.data.payload.parts);
+      
+      // If no attachments were found at all
+      if (foundAttachments.length === 0) {
+        throw new Error('No attachments found in this message');
       }
 
-      // Now make the request to get the attachment content using the validated ID
+      console.error(`Found ${foundAttachments.length} total attachments in the message`);
+      
+      // Create a detailed log of all found attachments for debugging
+      let attachmentDebugInfo = foundAttachments.map(att => 
+        `"${att.filename}" (${att.id}) (alt-ids: ${att.part.partId || 'none'}, ${att.part.body?.attachmentId || 'none'})`
+      ).join(', ');
+      console.error(`Available attachments: ${attachmentDebugInfo}`);
+
+      // Try to find the specific attachment requested
+      let targetAttachment: {id: string, filename: string, part: gmail_v1.Schema$MessagePart} | undefined;
+      
+      // 1. First try exact ID match
+      targetAttachment = foundAttachments.find(att => att.id === attachmentId);
+      
+      // 2. If no match by ID, try exact filename match
+      if (!targetAttachment) {
+        targetAttachment = foundAttachments.find(att => att.filename === attachmentId);
+        if (targetAttachment) {
+          console.error(`Found attachment by exact filename match: "${targetAttachment.filename}" with ID "${targetAttachment.id}"`);
+        }
+      }
+      
+      // 3. If still no match, try case-insensitive filename match
+      if (!targetAttachment) {
+        targetAttachment = foundAttachments.find(att => 
+          att.filename.toLowerCase() === attachmentId.toLowerCase()
+        );
+        if (targetAttachment) {
+          console.error(`Found attachment by case-insensitive filename match: "${targetAttachment.filename}" with ID "${targetAttachment.id}"`);
+        }
+      }
+      
+      // 4. If still no match, try partial filename match (file contains search term or search term contains file)
+      if (!targetAttachment) {
+        targetAttachment = foundAttachments.find(att => 
+          att.filename.toLowerCase().includes(attachmentId.toLowerCase()) || 
+          attachmentId.toLowerCase().includes(att.filename.toLowerCase())
+        );
+        if (targetAttachment) {
+          console.error(`Found attachment by partial filename match: "${targetAttachment.filename}" with ID "${targetAttachment.id}"`);
+        }
+      }
+      
+      // 5. If still no match, just use the first attachment
+      if (!targetAttachment && foundAttachments.length > 0) {
+        targetAttachment = foundAttachments[0];
+        console.error(`No match found. Using first available attachment: "${targetAttachment.filename}" with ID "${targetAttachment.id}"`);
+      }
+      
+      if (!targetAttachment) {
+        throw new Error(`Attachment not found. Available attachments: ${attachmentDebugInfo}`);
+      }
+      
+      // Use the found attachment ID for the actual API request
+      const actualAttachmentId = targetAttachment.id;
+      console.error(`Using attachment ID for API request: ${actualAttachmentId} (from file "${targetAttachment.filename}")`);
+
+      // Now make the request to get the attachment content using the correct ID
       const response = await this.gmail.users.messages.attachments.get({
         userId: this.userId,
         messageId,
-        id: attachmentId,
+        id: actualAttachmentId,
       });
 
       if (!response.data) {
         throw new Error('Attachment data not found in API response');
       }
-      
-      // Use the found (or replaced) attachment again
-      const finalAttachmentPart = findAttachmentPart(message.data.payload.parts, attachmentId);
-      
-      if (!finalAttachmentPart) {
-        throw new Error('Attachment metadata lost during processing');
-      }
 
-      console.error(`Successfully retrieved attachment with ID "${attachmentId}"`);
+      console.error(`Successfully retrieved attachment data for "${targetAttachment.filename}"`);
       
       return {
-        id: attachmentId,
-        filename: finalAttachmentPart.filename ?? 'unnamed-attachment',
-        mimeType: finalAttachmentPart.mimeType ?? 'application/octet-stream',
-        size: parseInt(String(finalAttachmentPart.body?.size || '0'), 10),
+        id: actualAttachmentId,
+        filename: targetAttachment.filename,
+        mimeType: targetAttachment.part.mimeType ?? 'application/octet-stream',
+        size: parseInt(String(targetAttachment.part.body?.size || '0'), 10),
         data: response.data.data ?? '',
       };
     } catch (error) {

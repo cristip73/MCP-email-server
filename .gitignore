@@ -35,3 +35,16 @@ gcp-oauth.keys.json
 .cursorrules
 
 /Z_DOCS
+
+# Credentials
+gcp-oauth.keys.json
+credentials.json
+.env
+
+# Build
+build/
+dist/
+
+# NPM
+.npmrc
+*.tgz

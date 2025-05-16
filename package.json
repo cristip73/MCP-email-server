@@ -1,17 +1,18 @@
 {
-  "name": "email-server",
+  "name": "@cristip73/email-mcp",
   "version": "0.8.0",
-  "description": "MCP server for email operations",
+  "description": "MCP server for Gmail operations",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "email-server": "build/index.js"
+    "email-mcp": "build/index.js"
   },
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "start": "node build/index.js",
     "auth": "node build/index.js auth",
-    "dev": "tsc && node build/index.js"
+    "dev": "tsc && node build/index.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
@@ -27,5 +28,28 @@
     "@types/node": "^20.17.24",
     "@types/quoted-printable": "^1.0.2",
     "typescript": "^5.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cristip73/MCP-email-server.git"
+  },
+  "keywords": [
+    "mcp",
+    "gmail",
+    "email",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "cristip73",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cristip73/MCP-email-server/issues"
+  },
+  "homepage": "https://github.com/cristip73/MCP-email-server#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

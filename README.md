@@ -1,64 +1,97 @@
 # Gmail MCP Server
 
-A Model Context Protocol (MCP) server that enables Claude Desktop App (or any other app that supports MCP) to interact with Gmail, providing capabilities for reading, searching, and sending emails through a standardized interface.
+A Model Context Protocol (MCP) server that enables Claude Desktop App (or any other app that supports MCP) to interact with Gmail, providing capabilities for reading, searching, and sending emails through a standardized interface, and much more.
+
+## What's different from other MCP for email servers?
+
+Besides the standard send, read, search, etc. it also supports replying to all, CC, BCC, quote the original message, forward emails, create, update, list and delete drafts, manage labels, mark emails as read, unread, archived; attachment saving to your files.
+
+I spent a lot of time to make it resemble Gmail behavior as much as possible. Adding quotes to replies, reply and forward in the same thread, category mangement (primary, social, promotions, updates, forums).
+
+I also spent a lot of time to adjust the date and time to the user's timezone. Default is GMT+0. So when you ask for emails from yesterday, it will be adjusted to the user's timezone.
+
+BEST PRACTICE: When you ask Claude to send an email, ask it write the email/reply/forward and save it as a draft. You can review it and send confirm manually. At least for important emails.
 
 ## Installation
 
-### Prerequisites
+### Option 1: Using NPX (Recommended)
 
-- Node.js 16 or later
-- npm
+You can run the MCP Email Server directly using npx without installing it globally:
 
-### Setup Steps
+```bash
+npx @cristip73/email-mcp
+```
 
-1. **Create a Google Cloud Project and enable the Gmail API**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project
-   - Enable the Gmail API
-   - Create OAuth credentials (Desktop application)
-   - Download the credentials JSON file as `gcp-oauth.keys.json`
+For authentication (first-time setup):
 
-2. **Clone and Install**:
+```bash
+npx @cristip73/email-mcp auth
+```
+
+### Option 2: Clone and Install Locally
+
+1. **Clone and Install**:
    ```bash
    git clone https://github.com/cristip73/MCP-email-server.git
    cd MCP-email-server
    npm install
    ```
 
-3. **Build the Server**:
+2. **Build the Server**:
    ```bash
    npm run build
    ```
 
-4. **Authenticate with Gmail**:
+3. **Authenticate with Gmail**:
    ```bash
    npm run auth
    ```
    This will open a browser window to authenticate with your Google account.
 
-5. **Make Package available to Claude**:
+4. **Make Package available to Claude**:
    ```bash
    npm link
    ```
+
+## Setting up Google Cloud OAuth Credentials
+
+Before using this application, you need to set up OAuth credentials in Google Cloud:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to "APIs & Services" > "Library"
+4. Search for and enable the "Gmail API"
+5. Go to "APIs & Services" > "Credentials"
+6. Click "Create Credentials" > "OAuth client ID"
+7. Select "Desktop application" as the application type
+8. Name your OAuth client (e.g., "MCP Email Client")
+9. Download the credentials JSON file
+
+Once downloaded:
+- Rename the file to `gcp-oauth.keys.json`
+- Place it in either:
+  - Your current working directory (it will be copied automatically)
+  - The global config directory at `~/.email-mcp/gcp-oauth.keys.json`
 
 ## Usage with Claude
 
 ### Claude Desktop
 
-Add the MCP server to Claude Desktop:
+How to add the MCP server to Claude Desktop:
 
-Go into Claude Desktop settings then go into Developer Mode then choose Edit Config and edit the JSON file
+Open Claude Desktop > Click on "Claude" in the top menu > Click on "Settings" > Click on "Developer Mode" > Choose "Edit Config" > Edit the claude_desktop_config.json file with Cursor or any other text editor.
 
-#### Example of a local config file for Claude Desktop. 
-
-If you have multiple MCPs be careful with you syntax. You should add them under "mcpServers" not copy the whole section below. Ask AI for help if you are unsure.
+#### Example of claude_desktop_config.json file with NPX:
 
 ```json
 {
   "mcpServers": {
     "email-server": {
-      "command": "node",
-      "args": ["/path/to/email-server/build/index.js"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cristip73/email-mcp"
+      ],
       "env": {
           "TIME_ZONE": "GMT+2",
           "DEFAULT_ATTACHMENTS_FOLDER": "/Users/username/CLAUDE/Attachments"
@@ -67,6 +100,12 @@ If you have multiple MCPs be careful with you syntax. You should add them under 
   }
 }
 ```
+
+Save the file and restart Claude Desktop. That's it! Enjoy not having to write an email message by hand anymore. Just ask Claude to do it for you.
+
+If you have done all the steps correctly, you should see the email-server in the list of MCP servers in Claude Desktop > Settings > Developer Mode. If you didn't you will get an error message. Ask AI for help if you are unsure.
+
+
 IMPORTANT: Set the DEFAULT_ATTACHMENTS_FOLDER to a valid path on your system.
 
 IMPORTANT: Set the TIME_ZONE to your local timezone in GMT format. Eg: GMT+2, GMT-5, etc. Otherwise the date and time of the emails will be off, it is set to GMT+0 by default by Gmail.
@@ -82,10 +121,20 @@ claude mcp add email-server -- /path/to/email-server/build/index.js
 ## Purpose
 
 This server bridges Claude AI with Gmail API, allowing Claude to:
-- Send emails and replies
+- Send emails and replies (including replies to all, CC and BCC, quote the original message, forward emails, etc.)
 - Search and retrieve emails with advanced filters
 - Read email content and attachments
 - Work with Gmail categories and labels
+- Save attachments to a specific folder on your system
+- Create, update, list and delete drafts
+- Manage labels
+- Mark emails as read, unread, archived, etc.
+- List attachments in an email
+- Save attachments from an email to a specific folder on your system
+
+Unfortunatelly Gmail does not support scheduled emails. It would have been great if it did.
+
+
 
 By implementing the Model Context Protocol, it gives Claude the ability to perform authenticated Gmail operations while maintaining security and privacy.
 
@@ -135,6 +184,18 @@ The server supports the following configuration:
 
 - `TIME_ZONE`: Timezone configuration in format like 'GMT+2' or 'GMT-5' (default: 'GMT+0')
 - `DEFAULT_ATTACHMENTS_FOLDER`: Path to the directory where email attachments can be saved (e.g., '/Users/username/CLAUDE/attachments')
+
+### Important Path Information
+
+When you see `~/.email-mcp/credentials.json` in the documentation, this refers to:
+
+- **macOS**: `/Users/[your-username]/.email-mcp/credentials.json`
+- **Linux**: `/home/[your-username]/.email-mcp/credentials.json`
+- **Windows**: `C:\Users\[your-username]\.email-mcp\credentials.json`
+
+The same applies to `~/.email-mcp/gcp-oauth.keys.json`.
+
+These files are stored in a hidden directory in your user home folder. The application automatically creates this directory during the authentication process.
 
 ## Features
 

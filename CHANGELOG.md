@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.1] - 2024-05-20
+
+### Fixed
+- Enhanced attachment search algorithm:
+  - Completely redesigned the attachment finding logic to work with both attachment IDs and filenames
+  - Implemented a multi-stage matching strategy (exact ID match, exact filename match, case-insensitive match, partial match)
+  - Added comprehensive logging of all available attachments with their IDs for debugging
+  - Fixed issues with finding attachments by filename instead of ID
+  - Improved error reporting with detailed information about available attachments
+  - Made attachment search more robust and user-friendly
+
 ## [0.8.0] - 2024-04-18
 
 ### Added
