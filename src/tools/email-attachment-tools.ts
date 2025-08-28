@@ -62,13 +62,13 @@ function validateAndNormalizePath(targetPath: string): string {
     return normalizedTargetPath;
   }
   
-  // For relative paths, use DEFAULT_ATTACHMENTS_FOLDER if available, otherwise current directory
+  // For relative paths, use DEFAULT_ATTACHMENTS_FOLDER if available, otherwise CODING folder
   if (DEFAULT_ATTACHMENTS_FOLDER) {
     return path.join(DEFAULT_ATTACHMENTS_FOLDER, normalizedTargetPath);
   } else {
-    // Fallback to current directory if no default folder is set
-    const currentDir = process.cwd();
-    const attachmentsDir = path.join(currentDir, 'attachments');
+    // Default to CODING folder for easy access
+    const codingDir = "/Users/cristi/Downloads/CODING";
+    const attachmentsDir = path.join(codingDir, 'attachments');
     
     // Ensure attachments directory exists
     if (!fs.existsSync(attachmentsDir)) {
