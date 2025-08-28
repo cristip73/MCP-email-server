@@ -92,38 +92,10 @@ ATTACHMENTS
     name: "send_email",
     description: "Send a new email",
     template: `
-To send a new email, please provide:
-1. Recipient address(es)
-2. Subject
-3. Content
-4. From address (optional)
-
-The email will be sent using the specified from address or the default one if not provided.
+Send a new email with recipient(s), subject, and content. Optional 'from' parameter allows multi-account sending.
     `,
     parameters: ["to", "subject", "content", "from"],
     required_output: ["messageId"]
-  },
-
-  send_reply: {
-    name: "send_reply",
-    description: "Send a reply in an email thread",
-    template: `
-To properly reply to an email, we need:
-1. Original message Thread ID
-2. Original recipient address (to use as sender)
-3. Subject (prefixed with Re:)
-4. Content
-5. References to maintain thread
-
-The reply will be sent:
-- In the same thread as the original message
-- From the same address that received the original message
-- With proper threading headers
-
-Please ensure all these elements are provided to maintain email thread context.
-    `,
-    parameters: ["threadId", "fromAddress", "subject", "content", "inReplyTo"],
-    required_output: ["messageId", "threadId"]
   },
 
   send_reply_all: {
@@ -404,13 +376,7 @@ IMPORTANT NOTES:
     name: "modify_labels",
     description: "Add or remove labels from a message",
     template: `
-To add or remove labels from a message, please provide:
-
-1. The message ID (required)
-2. Labels to add (optional)
-3. Labels to remove (optional)
-
-You must specify at least one label to add or remove.
+Add or remove labels from a message. Requires messageId and at least one of: addLabelIds or removeLabelIds.
 
 SYSTEM LABELS:
 - INBOX - Message appears in inbox
@@ -421,15 +387,6 @@ SYSTEM LABELS:
 - DRAFT - Message is a draft
 - TRASH - Message is in trash
 - SPAM - Message is in spam
-
-COMMON OPERATIONS:
-- To mark as read: remove UNREAD label
-- To mark as unread: add UNREAD label
-- To archive: remove INBOX label
-- To move to inbox: add INBOX label
-- To trash: add TRASH label and remove INBOX label
-
-Label IDs for custom labels can be found using the list_labels tool.
     `,
     parameters: ["messageId", "addLabelIds", "removeLabelIds"],
     required_output: ["messageId", "labels"]
@@ -439,52 +396,10 @@ Label IDs for custom labels can be found using the list_labels tool.
     name: "timezone_info",
     description: "Check the system's time zone configuration",
     template: `
-To check the system's time zone configuration, you can use the get_timezone_info tool.
-
-This tool will return the following information:
-1. The configured time zone (from the TIME_ZONE variable)
-2. The offset calculated in hours
-3. The current date and time adjusted to the time zone
-4. The date and time in UTC for comparison
-
-This information will help you understand:
-- Which time zone is configured in the system
-- How the email timestamps are adjusted to this time zone
-- The difference between UTC time and local time
-
-To change the time zone, the TIME_ZONE configuration must be modified at the system level.
+Returns timezone configuration, offset in hours, current local time, and UTC time for comparison.
     `,
     parameters: [],
     required_output: ["timeZoneConfig", "offsetHours", "currentTimeLocal", "currentTimeUTC"]
-  },
-
-  send_as_accounts: {
-    name: "send_as_accounts",
-    description: "List of accounts and email addresses that can be used for sending emails",
-    template: `
-To manage emails sent from different addresses, you can use the list_send_as_accounts tool.
-
-This tool will list all accounts and email addresses that can be used for sending messages, including:
-1. The primary email address associated with the Gmail account
-2. Any alias or alternative address configured for "Send As"
-3. Indication of the default address for sending emails
-
-The returned information includes:
-- email: The email address
-- name: The display name for the address
-- isDefault: Whether it is the default address for sending emails
-- isPrimary: Whether it is the primary account address
-- verificationStatus: The verification status of the address
-
-How to use this information:
-- In the send_email tool, you can specify the "from" parameter with one of these addresses
-- In the reply and reply_all tools, the appropriate address will be selected automatically (the address to which the original email was sent)
-- Your emails will not be included in the recipients when using reply_all (to avoid self-sending)
-
-IMPORTANT: Always send from the correct address depending on the context! If you reply to an email sent to a specific address, use that address for the reply.
-    `,
-    parameters: [],
-    required_output: ["accounts", "defaultAccount", "count"]
   },
 
   forward_email: {
