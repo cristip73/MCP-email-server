@@ -17,7 +17,7 @@ Aloca-ti te rog macar 10 minute sa il parcurgi in detaliu si in liniste...
 Pe principiul sa iti faci vara sanie si iarna car, am facut o adaptare si a iesit asa:
 
 
-Sa te pregatesti din weekend ca sa te poti bucura de rezultate excelente toata saptamana... :) 
+**Sa te pregatesti din weekend ca sa te poti bucura de rezultate excelente toata saptamana... :) **
 
 
 Mai concret... la ce ma refer...
@@ -58,10 +58,10 @@ Dar mai important decat faptul ca ai avut "scapari"... este sa te urci inapoi pe
 Imi place zicerea:
 
 
-Nu conteaza de cate ori cazi, conteaza de cate ori te ridici!
+**Nu conteaza de cate ori cazi, conteaza de cate ori te ridici!**
 
 
-Asa ca, DA-TI VOIE SA NU FII PERFECT! 
+Asa ca, **DA-TI VOIE SA NU FII PERFECT!** 
 
 
 (nu de la inceput in orice caz...:)) 
@@ -86,7 +86,7 @@ Printeaza acest Manifesto, poarta-l cu tine sau pune-l intr-un loc in care sa il
 ....si acum sa trecem la lucruri serioase...
 
 
-Obiceiul nr. 1 - Clubul de la ora 5 AM
+**Obiceiul nr. 1 - Clubul de la ora 5 AM**
 
 
 
@@ -101,13 +101,13 @@ super-succes.
 Este obiceiul lui: 
 
 
-> Michael Phelps (de 18 ori medaliat cu aur in proba de inot in 3 Olimpiade), este si obiceiul lui
+> **Michael Phelps** (de 18 ori medaliat cu aur in proba de inot in 3 Olimpiade), este si obiceiul lui
 
 
-> Robin Sharma (cea mai autorizata voce in topicuri legate de leadership) este si obiceiul lui
+> **Robin Sharma** (cea mai autorizata voce in topicuri legate de leadership) este si obiceiul lui
 
 
-> Wayne Dyer (probabil cel mai cunoscut autor de literatura de dezvoltare personala prin spiritualitate....
+> **Wayne Dyer** (probabil cel mai cunoscut autor de literatura de dezvoltare personala prin spiritualitate....
 
 
 ...si mai este si obiceiul a 80% din CEO din top 500 Fortune! 
@@ -122,7 +122,7 @@ Si din momentul in care am pus cap la cap toate aceste informatii.... mi-a deven
 In fiecare an, pe 2 octombrie, sarbatoresc ziua in care am inceput sa ma tresezc la 5 dimineata… inca din 2010. Pot spune ca de atunci viata mea a "suferit" o crestere dramatica a calitatii. 
 
 
-FOARTE CONCRET:
+**FOARTE CONCRET:**
 
 
 Acest program EXISTA DOAR PENTRU CA am inceput sa ma trezesc la 5 si am gasit timpul necesar sa il creez in timp ce faceam toate celelalte lucruri pe care le faceam deja!
@@ -137,38 +137,38 @@ Eu sunt mai energic, mai clar, mai focusat, mai orientat spre obiective si ma si
 Daca vrei, secretul se poate comprima in cateva cuvinte ....
 
 
-In esenta, este vorba de a te face pe tine puternic primul lucru dimineata, pentru ca apoi sa fii puternic dupa ce iesi in lume!
+In esenta, este vorba de **a te face pe tine puternic primul lucru dimineata, pentru ca apoi sa fii puternic dupa ce iesi in lume!**
 
 
-Si mai e legat de urmatorul aspect: "daca tu nu ai un plan, altcineva te va include in planul lui!"
+Si mai e legat de urmatorul aspect: **"daca tu nu ai un plan, altcineva te va include in planul lui!"**
 
 
-Prin deductie logica, sa te poti face pe tine puternic dimineata, ai nevoie de timp de calitate... TU cu TINE :)
+Prin deductie logica, sa te poti face pe tine puternic dimineata, **ai nevoie de timp de calitate... TU cu TINE :)**
 
 
 Cand e cel mai probabil sa ai acest timp de calitate?.... surpriza.... cand dorm ceilalti... si e drept ca perioada asta poate fi dimineata devreme sau noaptea tarziu....
 
 
-De ce pledez net in favoarea timpului de dimineata?
+**De ce pledez net in favoarea timpului de dimineata?
 
 
 1. Esti cel mai odihnit
 
 
-2. Ai energie de initiere - proactiva - esti predispus sa incepi (vs. sa amani)
+2. Ai energie de initiere - proactiva **- esti predispus sa incepi (vs. sa amani)
 
 
-3. Iti setezi mintea corect in functie de ceea ce ai de facut
+**3. Iti setezi mintea corect** in functie de ceea ce ai de facut
 
 
-4. Esti initiator in contextele in care alegi sa intri (de ex. tu esti cel care 
+**4. Esti initiator in contextele in care alegi sa intri** (de ex. tu esti cel care 
 suna, in loc sa astepti sa fii sunat)
 
 
-5. Ai cel mai mare control al acestui timp si nu vei fi deranjat/intrerupt
+**5. Ai cel mai mare control al acestui timp** si nu vei fi deranjat/intrerupt
 
 
-6. Energetic esti curat - rezidurile din ziua precedenta s-au curatat prin odihna
+**6. Energetic esti curat** - rezidurile din ziua precedenta s-au curatat prin odihna
 
 
 .... si pot continua inca mult si bine cu alte exemple...
@@ -189,7 +189,7 @@ Si pentru ca nu pot realiza ceva ei insisi, e mai usor sa isi diminueze sentimen
 Repet!
 
 
-De 15 ani de cand "sap" dupa aur si diamante in dezvoltarea personala, NU STIU ABSOLUT NIMIC care sa genereze rezultate macar asemanatoare cu obiceiul de a-ti aloca 1-2 ore primul lucru dimineata pentru tine si cresterea ta!!
+**De 15 ani de cand "sap" dupa aur si diamante in dezvoltarea personala, NU STIU ABSOLUT NIMIC care sa genereze rezultate macar asemanatoare cu obiceiul de a-ti aloca 1-2 ore primul lucru dimineata pentru tine si cresterea ta!!**
 
 
 Daca esti pe cont propriu si nu ai nevoie sa pleci la 7 sau la 8 de acasa...pastreaza totusi obiceiul de a-ti aloca primele 2 ore din zi EXCLUSIV pentru tine, si viata ta va arata dramatic imbunatatita in 30, 90, 120 de zile sau mai putin!
@@ -208,19 +208,19 @@ Iti propun sa incepem "basic" fara lucruri complicate... si apoi dupa ce sunt in
 Deci, ce iti propun sa faci incepand de luni dimineata de la prima ora: (e ceea ce fac eu de 21 de luni, si ceea ce au facut ceilalti 60 de "norocosi" din primele serii de coaching... deci garantez pentru rezultate...atata timp cat vei practica asta...)
 
 
-1. Trezit cat mai aproape de ora 5 a.m. (sau minim cu 30 de min mai devreme decat te trezesti acum in mod curent)
+**1. Trezit cat mai aproape de ora 5 a.m.** (sau minim cu 30 de min mai devreme decat te trezesti acum in mod curent)
 
 
-2. Imediat dupa trezire, bea 0.5 L de apa plata la temperatura corpului (!) sa iti hidratezi foarte bine organismul
+**2. Imediat dupa trezire, bea 0.5 L de apa plata** la temperatura corpului (!) sa iti hidratezi foarte bine organismul
 
 
-3. 10x respiratie in 4 timpi (4 inspiratii consecutive urmate de 4 expiratii consecutive) si 1 "batuceala" (adica energizarea corpului prin batai usoare ale palmelor pe toata suprafata corpului) 
+**3. 10x respiratie in 4 timpi** (4 inspiratii consecutive urmate de 4 expiratii consecutive) si **1 "batuceala"** (adica energizarea corpului prin batai usoare ale palmelor pe toata suprafata corpului) 
 
 
-4. Mic dejun consistent de minim 500 de calorii (include fibre, legume si fructe proaspete...cat mai multe ingrediente organice)
+**4. Mic dejun consistent de minim 500 de calorii** (include fibre, legume si fructe proaspete...cat mai multe ingrediente organice)
 
 
-5. Citeste pentru a-ti hrani mintea in timpul ramas pana la 1h, dintr-un domeniu care te intereseaza.
+**5. Citeste pentru a-ti hrani mintea in timpul ramas pana la 1h**, dintr-un domeniu care te intereseaza.
 
 
 Este varianta basic pentru ca vreau sa pastram lucrurile simple si eficiente in acest stadiu.
@@ -298,7 +298,19 @@ Dezabonare
                 
  
  
- You may unsubscribe or change your contact details at any time.
+ You may [unsubscribe](http://app.getresponse.com/unsubscribe.html?x=a62b&m=XZWfr&s=9catLr&u=Y56a&y=H&pt=unsubscribe) or [change your contact details](http://app.getresponse.com/change_details.html?x=a62b&m=XZWfr&s=9catLr&u=Y56a&y=H&pt=change_details) at any time.
+ 
+ 
+                
+            
+        
+        
+            
+                
+ 
+ [
+ 
+ ](http://app.getresponse.com/referral.html?x=a62b&u=Y56a&y=a&)
 
 ## Attachments
 
