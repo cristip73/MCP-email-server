@@ -83,7 +83,30 @@ function htmlToMarkdown(html: string): string {
                    .replace(/[ \t]+\n/g, '\n')    // Remove trailing spaces
                    .trim();                       // Remove leading/trailing whitespace
   
+  // Apply additional whitespace cleaning
+  markdown = cleanWhitespace(markdown);
+  
   return markdown;
+}
+
+// Clean excessive whitespace - nuclear option
+function cleanWhitespace(text: string): string {
+  return text
+    .split('\n')
+    .map(line => {
+      // Remove ALL leading whitespace from every line
+      const trimmed = line.replace(/^\s*/, '');
+      
+      // If line becomes empty, return empty
+      if (!trimmed) return '';
+      
+      // Clean up multiple spaces in content
+      return trimmed.replace(/\s{2,}/g, ' ');
+    })
+    .filter(line => line !== '') // Remove completely empty lines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // Check if content is HTML
@@ -168,6 +191,9 @@ function htmlToPlainText(html: string): string {
   text = text.replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
              .replace(/[ \t]+\n/g, '\n')    // Remove trailing spaces
              .trim();                       // Remove leading/trailing whitespace
+  
+  // Apply additional whitespace cleaning
+  text = cleanWhitespace(text);
   
   return text;
 }
