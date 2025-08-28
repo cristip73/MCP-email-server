@@ -164,8 +164,8 @@ function htmlToPlainText(html: string): string {
   // Extract text from Markdown links: [text](url) → [text]
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '[$1]');
   
-  // Extract link text only (remove URLs): <a href="url">text</a> → text
-  text = text.replace(/<a[^>]*href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/gi, '$2');
+  // Extract link text only (remove URLs): <a href="url">text</a> → [text]
+  text = text.replace(/<a[^>]*href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/gi, '[$2]');
   
   // Convert headers to plain text
   text = text.replace(/<h([1-6])[^>]*>([^<]*)<\/h[1-6]>/gi, '\n\n$2\n\n');
