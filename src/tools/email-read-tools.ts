@@ -161,8 +161,8 @@ function htmlToPlainText(html: string): string {
   
   let text = html;
   
-  // Extract text from Markdown links: [text](url) → text
-  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // Extract text from Markdown links: [text](url) → [text]
+  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '[$1]');
   
   // Extract link text only (remove URLs): <a href="url">text</a> → text
   text = text.replace(/<a[^>]*href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/gi, '$2');
@@ -214,8 +214,8 @@ function formatEmailAsMarkdown(email: any, noLinks: boolean = false): string {
   
   // Apply no_links processing to all content (HTML and plain text)
   if (noLinks) {
-    // Remove Markdown links: [text](url) → text
-    content = content.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+    // Remove Markdown links: [text](url) → [text]
+    content = content.replace(/\[([^\]]*)\]\([^)]*\)/g, '[$1]');
   }
   
   return `# Email
