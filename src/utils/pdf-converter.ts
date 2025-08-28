@@ -3,42 +3,58 @@ import * as path from 'path';
 import { createRequire } from 'module';
 
 /**
- * Clean and normalize text extracted from PDF with better whitespace handling
+ * Clean and normalize text extracted from PDF with safer whitespace handling
  */
 function cleanText(text: string): string {
-  // Undo hyphenation at line breaks like "word-\nnext" before other joins
+  // Step 1: Protect URLs and email addresses from modification
+  const urlMap: Map<string, string> = new Map();
+  let urlCounter = 0;
+  
+  // Match URLs (http/https) and email addresses
+  const urlRegex = /(?:https?:\/\/[^\s\]]+|\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b)/g;
+  text = text.replace(urlRegex, (match) => {
+    const placeholder = `<<<URL_${urlCounter++}>>>`;
+    urlMap.set(placeholder, match);
+    return placeholder;
+  });
+
+  // Step 2: Undo hyphenation at line breaks like "word-\nnext"
   text = text.replace(/-\s*\n/g, '');
 
-  // Preserve double newlines as paragraph markers using a placeholder
+  // Step 3: Preserve double newlines as paragraph markers
   const PARA = '<<<__PARA__>>>';
   text = text.replace(/\n{2,}/g, PARA);
 
-  // Collapse single newlines to spaces, but be careful with existing spaces
+  // Step 4: Collapse single newlines to spaces
   text = text.replace(/\n/g, ' ');
 
-  // Fix missing spaces after punctuation and before capital letters
+  // Step 5: Fix missing spaces after punctuation and before capital letters (but not in URLs)
   text = text.replace(/([.!?])([A-ZĂÂÎȘȚ])/g, '$1 $2');
   
-  // Fix missing spaces before lowercase letters that should be separate words
+  // Step 6: Fix missing spaces between lowercase and uppercase letters  
   text = text.replace(/([a-zăâîșț])([A-ZĂÂÎȘȚ])/g, '$1 $2');
   
-  // Fix common Romanian word boundaries
-  text = text.replace(/ul([A-ZĂÂÎȘȚ])/g, 'ul $1');
-  text = text.replace(/zi([ș])/g, 'zi $1');
-  text = text.replace(/că([a-zăâîșț])/g, 'că $1');
-  text = text.replace(/să([îi])/g, 'să $1');
-  text = text.replace(/([a-zăâîșț])în([a-zăâîșț])/g, '$1 în $2');
+  // Step 7: Fix specific Romanian word boundaries (CAREFUL - only safe ones)
+  text = text.replace(/\bul([A-ZĂÂÎȘȚ])/g, 'ul $1');
+  // REMOVED problematic "că" regex that breaks "către"
+  text = text.replace(/\bsă([îi])/g, 'să $1');
   
-  // Restore paragraph breaks
+  // Step 8: Restore paragraph breaks
   text = text.replace(new RegExp(PARA, 'g'), '\n\n');
 
-  // Collapse excessive whitespace but preserve necessary spaces
+  // Step 9: Collapse excessive whitespace
   text = text.replace(/[ \t]+/g, ' ');
   text = text.replace(/\n\s+\n/g, '\n\n');
   
-  // Fix common spacing issues around punctuation
-  text = text.replace(/\s+([,.!?;:])/g, '$1');
-  text = text.replace(/([,.!?;:])\s*([a-zA-ZăâîșțĂÂÎȘȚ])/g, '$1 $2');
+  // Step 10: Fix spacing around punctuation (but exclude dots that are part of URLs/decimals)
+  text = text.replace(/\s+([,!?;:])/g, '$1');
+  // Only add space after punctuation if it's followed by a letter and not part of URL pattern
+  text = text.replace(/([,!?;:])\s*([a-zA-ZăâîșțĂÂÎȘȚ])/g, '$1 $2');
+
+  // Step 11: Restore protected URLs
+  for (const [placeholder, originalUrl] of urlMap) {
+    text = text.replace(placeholder, originalUrl);
+  }
 
   return text.trim();
 }
