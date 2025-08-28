@@ -33,8 +33,6 @@ const SaveAttachmentSchema = z.object({
   messageId: z.string().describe("ID of the message containing the attachment"),
   attachmentId: z.string().describe("ID of the attachment or the filename (e.g., 'f_mamj3yyo1' or 'document.pdf'). Optional if the message has only one attachment."),
   targetPath: z.string().describe("Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"),
-  pdfSaveOption: z.enum(["pdf_only", "md_only", "both_pdf_and_md"]).optional().describe("For PDF files: save as PDF only (default), Markdown only, or both formats"),
-  saveAsMarkdown: z.boolean().optional().describe("Convert PDF attachments to Markdown format using pdf_to_md.py script"),
 });
 
 /**
@@ -169,15 +167,6 @@ export const saveAttachmentTool: Tool = {
       targetPath: {
         type: "string",
         description: "Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"
-      },
-      pdfSaveOption: {
-        type: "string",
-        enum: ["pdf_only", "md_only", "both_pdf_and_md"],
-        description: "For PDF files: save as PDF only (default), Markdown only, or both formats"
-      },
-      saveAsMarkdown: {
-        type: "boolean",
-        description: "Convert PDF attachments to Markdown format using pdf_to_md.py script"
       }
     },
     required: ["messageId", "targetPath"]
@@ -186,8 +175,6 @@ export const saveAttachmentTool: Tool = {
     messageId: string;
     attachmentId?: string;
     targetPath: string;
-    pdfSaveOption?: "pdf_only" | "md_only" | "both_pdf_and_md";
-    saveAsMarkdown?: boolean;
   }) => {
     try {
       // Note: DEFAULT_ATTACHMENTS_FOLDER is optional now - we can save anywhere accessible
