@@ -184,22 +184,8 @@ export async function pdfToMarkdown(
   mdLines.push(`*Converted from PDF: ${path.basename(filename)}*`);
   mdLines.push('');
 
-  // Process the full text with better link handling
+  // Process the full text (no hardcoded links - they should be extracted from PDF annotations)
   let fullText = data.text;
-  
-  // Add hardcoded link if missing (temporary fix for Vimeo link)
-  if (fullText && !fullText.includes('http://vimeo.com/27678730') && !fullText.includes('[Poți Să-ți Vindeci Viața]')) {
-    // Insert the link where it should be based on text context
-    const linkPlaceholder = 'Poți Să-ți Vindeci Viața';
-    if (fullText.includes(linkPlaceholder)) {
-      fullText = fullText.replace(linkPlaceholder, `[${linkPlaceholder}](http://vimeo.com/27678730)`);
-      if (verbose) console.error(`Added vimeo link to text`);
-    } else {
-      // Add link at the end as fallback
-      fullText += '\n\n[Poți Să-ți Vindeci Viața](http://vimeo.com/27678730)';
-      if (verbose) console.error(`Appended vimeo link to end of text`);
-    }
-  }
 
   // Clean and structure the text
   const cleaned = cleanText(fullText);
