@@ -89,23 +89,25 @@ function htmlToMarkdown(html: string): string {
   return markdown;
 }
 
-// Clean excessive whitespace - nuclear option
+// Clean excessive whitespace - conservative approach
 function cleanWhitespace(text: string): string {
   return text
     .split('\n')
     .map(line => {
-      // Remove ALL leading whitespace from every line
-      const trimmed = line.replace(/^\s*/, '');
+      // Only remove excessive leading spaces (20+ spaces) but preserve normal indentation
+      if (line.match(/^\s{20,}/)) {
+        return line.replace(/^\s+/, '');
+      }
       
-      // If line becomes empty, return empty
-      if (!trimmed) return '';
-      
-      // Clean up multiple spaces in content
-      return trimmed.replace(/\s{2,}/g, ' ');
+      // For lines with moderate leading spaces, keep them as they might be intentional formatting
+      // Only clean up excessive internal spaces (10+ consecutive spaces)
+      return line.replace(/\s{10,}/g, ' ');
     })
-    .filter(line => line !== '') // Remove completely empty lines
     .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
+    // Remove lines that are only whitespace (but keep normal empty lines)
+    .replace(/^\s+$/gm, '')
+    // Limit consecutive empty lines to maximum 2
+    .replace(/\n{4,}/g, '\n\n\n')
     .trim();
 }
 
