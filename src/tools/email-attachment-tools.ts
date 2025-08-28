@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { GmailClientWrapper } from "../client-wrapper.js";
+import { pdfToMarkdown } from "../utils/pdf-converter.js";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -33,6 +34,7 @@ const SaveAttachmentSchema = z.object({
   messageId: z.string().describe("ID of the message containing the attachment"),
   attachmentId: z.string().describe("ID of the attachment or the filename (e.g., 'f_mamj3yyo1' or 'document.pdf'). Optional if the message has only one attachment."),
   targetPath: z.string().describe("Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"),
+  pdfSaveOption: z.enum(["pdf_only", "md_only", "both_pdf_and_md"]).optional().default("pdf_only").describe("For PDF files: save as PDF only (default), Markdown only, or both formats"),
 });
 
 /**
@@ -167,6 +169,11 @@ export const saveAttachmentTool: Tool = {
       targetPath: {
         type: "string",
         description: "Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"
+      },
+      pdfSaveOption: {
+        type: "string",
+        enum: ["pdf_only", "md_only", "both_pdf_and_md"],
+        description: "For PDF files: save as PDF only (default), Markdown only, or both formats"
       }
     },
     required: ["messageId", "targetPath"]
@@ -175,12 +182,13 @@ export const saveAttachmentTool: Tool = {
     messageId: string;
     attachmentId?: string;
     targetPath: string;
+    pdfSaveOption?: "pdf_only" | "md_only" | "both_pdf_and_md";
   }) => {
     try {
       // Note: DEFAULT_ATTACHMENTS_FOLDER is optional now - we can save anywhere accessible
       
       // Validate and normalize the target path
-      const normalizedPath = validateAndNormalizePath(params.targetPath);
+      let normalizedPath = validateAndNormalizePath(params.targetPath);
       console.error(`Normalized path: ${normalizedPath} (original: ${params.targetPath})`);
       
       // List attachments for debugging
@@ -215,31 +223,83 @@ export const saveAttachmentTool: Tool = {
         throw new Error('Attachment data is empty');
       }
       
-      // Write the file to disk
-      const writeSuccess = await writeFileToDisk(
-        normalizedPath, 
-        attachment.data, 
-        attachment.mimeType
-      );
+      // Handle PDF conversion based on pdfSaveOption
+      const isPDF = attachment.mimeType === 'application/pdf';
+      const pdfOption = params.pdfSaveOption || 'pdf_only';
       
-      if (!writeSuccess) {
-        throw new Error(`Failed to write file to disk at ${normalizedPath}`);
+      let savedFiles: Array<{ path: string; type: 'pdf' | 'md'; size: number }> = [];
+      
+      if (isPDF && pdfOption !== 'pdf_only') {
+        // For PDF files with conversion options
+        const pdfBuffer = Buffer.from(attachment.data, 'base64');
+        
+        // Prepare file paths
+        const basePath = normalizedPath.replace(/\.pdf$/i, '');
+        const pdfPath = `${basePath}.pdf`;
+        const mdPath = `${basePath}.md`;
+        
+        // Save PDF file if needed
+        if (pdfOption === 'both_pdf_and_md') {
+          const pdfWriteSuccess = await writeFileToDisk(pdfPath, attachment.data, attachment.mimeType);
+          if (!pdfWriteSuccess) {
+            throw new Error(`Failed to write PDF file to disk at ${pdfPath}`);
+          }
+          
+          const pdfStats = fs.statSync(pdfPath);
+          savedFiles.push({ path: pdfPath, type: 'pdf', size: pdfStats.size });
+        }
+        
+        // Convert to Markdown
+        try {
+          const markdownContent = await pdfToMarkdown(pdfBuffer, attachment.filename, { verbose: true });
+          fs.writeFileSync(mdPath, markdownContent, 'utf8');
+          
+          const mdStats = fs.statSync(mdPath);
+          savedFiles.push({ path: mdPath, type: 'md', size: mdStats.size });
+          
+          // Update normalizedPath to point to the main output (MD for md_only, PDF for both)
+          normalizedPath = pdfOption === 'md_only' ? mdPath : pdfPath;
+          
+        } catch (conversionError: any) {
+          throw new Error(`PDF to Markdown conversion failed: ${conversionError.message}`);
+        }
+        
+      } else {
+        // Standard file saving (non-PDF or pdf_only option)
+        const writeSuccess = await writeFileToDisk(
+          normalizedPath, 
+          attachment.data, 
+          attachment.mimeType
+        );
+        
+        if (!writeSuccess) {
+          throw new Error(`Failed to write file to disk at ${normalizedPath}`);
+        }
+        
+        const stats = fs.statSync(normalizedPath);
+        savedFiles.push({ path: normalizedPath, type: isPDF ? 'pdf' : 'other' as any, size: stats.size });
       }
       
-      // Check if the file exists after writing
-      if (!fs.existsSync(normalizedPath)) {
-        throw new Error(`File was not created at ${normalizedPath}`);
+      // Verify all files exist and have content
+      for (const file of savedFiles) {
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`File was not created at ${file.path}`);
+        }
+        if (file.size === 0) {
+          throw new Error(`File was created but has zero bytes: ${file.path}`);
+        }
       }
       
-      // Check the file size
-      const stats = fs.statSync(normalizedPath);
-      console.error(`File size on disk: ${stats.size} bytes`);
+      const mainFile = savedFiles[savedFiles.length - 1] || savedFiles[0];
+      console.error(`Files saved: ${savedFiles.map(f => `${f.type.toUpperCase()} (${f.size} bytes)`).join(', ')}`);
       
-      if (stats.size === 0) {
-        throw new Error(`File was created but has zero bytes: ${normalizedPath}`);
-      }
+      const stats = { size: mainFile.size };
       
       // Return the operation result
+      const message = savedFiles.length > 1 
+        ? `Attachment "${attachment.filename}" was processed and saved as: ${savedFiles.map(f => `${f.type.toUpperCase()} (${f.size} bytes)`).join(', ')}`
+        : `Attachment "${attachment.filename}" (${stats.size} bytes) was successfully saved to "${normalizedPath}".`;
+      
       return {
         messageId: params.messageId,
         attachmentId: attachment.id, // Return actual ID used
@@ -249,8 +309,15 @@ export const saveAttachmentTool: Tool = {
         targetPath: normalizedPath,
         relativePath: DEFAULT_ATTACHMENTS_FOLDER ? path.relative(DEFAULT_ATTACHMENTS_FOLDER, normalizedPath) : path.basename(normalizedPath),
         actualFileSize: stats.size,
+        pdfSaveOption: params.pdfSaveOption,
+        savedFiles: savedFiles.map(f => ({
+          path: f.path,
+          type: f.type,
+          size: f.size,
+          relativePath: DEFAULT_ATTACHMENTS_FOLDER ? path.relative(DEFAULT_ATTACHMENTS_FOLDER, f.path) : path.basename(f.path)
+        })),
         success: true,
-        message: `Attachment "${attachment.filename}" (${stats.size} bytes) was successfully saved to "${normalizedPath}".`
+        message
       };
     } catch (error) {
       console.error(`Save attachment error details: ${error instanceof Error ? error.message : String(error)}`);
