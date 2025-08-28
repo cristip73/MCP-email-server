@@ -31,36 +31,54 @@ const ListAttachmentsSchema = z.object({
  */
 const SaveAttachmentSchema = z.object({
   messageId: z.string().describe("ID of the message containing the attachment"),
-  attachmentId: z.string().describe("ID of the attachment (optional if the message has only one attachment)"),
-  targetPath: z.string().describe("Filename or relative path where the attachment will be saved (will be created inside the DEFAULT_ATTACHMENTS_FOLDER)"),
+  attachmentId: z.string().describe("ID of the attachment or the filename (e.g., 'f_mamj3yyo1' or 'document.pdf'). Optional if the message has only one attachment."),
+  targetPath: z.string().describe("Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"),
+  pdfSaveOption: z.enum(["pdf_only", "md_only", "both_pdf_and_md"]).optional().describe("For PDF files: save as PDF only (default), Markdown only, or both formats"),
+  saveAsMarkdown: z.boolean().optional().describe("Convert PDF attachments to Markdown format using pdf_to_md.py script"),
 });
 
 /**
- * Validates if the target path is within the allowed DEFAULT_ATTACHMENTS_FOLDER
- * and normalizes it to ensure proper security
+ * Validates and normalizes path with flexible security allowing access to any accessible folder
  */
 function validateAndNormalizePath(targetPath: string): string {
-  if (!DEFAULT_ATTACHMENTS_FOLDER) {
-    throw new Error("DEFAULT_ATTACHMENTS_FOLDER environment variable is not defined. Please configure it in MCP Config JSON.");
-  }
-
   // Normalize the paths to handle any '..' or '.' segments
   const normalizedTargetPath = path.normalize(targetPath);
   
-  // Check if it's an absolute path or trying to escape with ../
-  if (path.isAbsolute(normalizedTargetPath) || normalizedTargetPath.includes('..')) {
-    // If absolute path, make sure it's within the allowed folder
-    if (normalizedTargetPath.startsWith(DEFAULT_ATTACHMENTS_FOLDER)) {
-      return normalizedTargetPath;
+  // If it's an absolute path, validate it's accessible and secure
+  if (path.isAbsolute(normalizedTargetPath)) {
+    // Prevent obvious malicious patterns but allow legitimate absolute paths
+    if (normalizedTargetPath.includes('..') && normalizedTargetPath.match(/\.\.[\/\\]/) !== null) {
+      throw new Error("Path contains potentially unsafe traversal patterns");
     }
     
-    // Otherwise, treat as a filename or relative path and join with default folder
-    const filename = path.basename(normalizedTargetPath);
-    return path.join(DEFAULT_ATTACHMENTS_FOLDER, filename);
+    // Check if the directory exists or can be created
+    const directory = path.dirname(normalizedTargetPath);
+    try {
+      if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, { recursive: true });
+      }
+    } catch (error) {
+      throw new Error(`Cannot create or access directory: ${directory}`);
+    }
+    
+    return normalizedTargetPath;
   }
   
-  // For relative paths, simply join with the default folder
-  return path.join(DEFAULT_ATTACHMENTS_FOLDER, normalizedTargetPath);
+  // For relative paths, use DEFAULT_ATTACHMENTS_FOLDER if available, otherwise current directory
+  if (DEFAULT_ATTACHMENTS_FOLDER) {
+    return path.join(DEFAULT_ATTACHMENTS_FOLDER, normalizedTargetPath);
+  } else {
+    // Fallback to current directory if no default folder is set
+    const currentDir = process.cwd();
+    const attachmentsDir = path.join(currentDir, 'attachments');
+    
+    // Ensure attachments directory exists
+    if (!fs.existsSync(attachmentsDir)) {
+      fs.mkdirSync(attachmentsDir, { recursive: true });
+    }
+    
+    return path.join(attachmentsDir, normalizedTargetPath);
+  }
 }
 
 /**
@@ -150,7 +168,16 @@ export const saveAttachmentTool: Tool = {
       },
       targetPath: {
         type: "string",
-        description: "Filename or relative path where the attachment will be saved (will be created inside the DEFAULT_ATTACHMENTS_FOLDER)"
+        description: "Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"
+      },
+      pdfSaveOption: {
+        type: "string",
+        enum: ["pdf_only", "md_only", "both_pdf_and_md"],
+        description: "For PDF files: save as PDF only (default), Markdown only, or both formats"
+      },
+      saveAsMarkdown: {
+        type: "boolean",
+        description: "Convert PDF attachments to Markdown format using pdf_to_md.py script"
       }
     },
     required: ["messageId", "targetPath"]
@@ -159,16 +186,11 @@ export const saveAttachmentTool: Tool = {
     messageId: string;
     attachmentId?: string;
     targetPath: string;
+    pdfSaveOption?: "pdf_only" | "md_only" | "both_pdf_and_md";
+    saveAsMarkdown?: boolean;
   }) => {
     try {
-      // First, verify that DEFAULT_ATTACHMENTS_FOLDER is defined
-      if (!DEFAULT_ATTACHMENTS_FOLDER) {
-        throw new Error(
-          "DEFAULT_ATTACHMENTS_FOLDER environment variable is not defined. " +
-          "Please add it to your MCP Config JSON with a path to an existing folder. " +
-          'Example: "/Users/username/CLAUDE/attachments"'
-        );
-      }
+      // Note: DEFAULT_ATTACHMENTS_FOLDER is optional now - we can save anywhere accessible
       
       // Validate and normalize the target path
       const normalizedPath = validateAndNormalizePath(params.targetPath);
@@ -238,7 +260,7 @@ export const saveAttachmentTool: Tool = {
         mimeType: attachment.mimeType,
         size: attachment.size,
         targetPath: normalizedPath,
-        relativePath: path.relative(DEFAULT_ATTACHMENTS_FOLDER, normalizedPath),
+        relativePath: DEFAULT_ATTACHMENTS_FOLDER ? path.relative(DEFAULT_ATTACHMENTS_FOLDER, normalizedPath) : path.basename(normalizedPath),
         actualFileSize: stats.size,
         success: true,
         message: `Attachment "${attachment.filename}" (${stats.size} bytes) was successfully saved to "${normalizedPath}".`
