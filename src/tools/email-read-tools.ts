@@ -45,16 +45,12 @@ function formatEmailAsMarkdown(email: any): string {
     
   const ccField = email.cc && email.cc.length > 0 ? `**CC:** ${Array.isArray(email.cc) ? email.cc.join(', ') : email.cc}\n` : '';
   
-  return `# Email: ${email.subject || 'No Subject'}
+  return `# Email
 
+**Subject:** ${email.subject || 'No Subject'}
 **From:** ${email.from || 'Unknown'}
 **To:** ${Array.isArray(email.to) ? email.to.join(', ') : email.to || 'Unknown'}
-${ccField}**Message ID:** ${email.messageId}
-**Thread ID:** ${email.threadId || 'N/A'}
-**Category:** ${email.category || 'N/A'}
-**Labels:** ${Array.isArray(email.labels) ? email.labels.join(', ') : email.labels || 'None'}
-**Status:** ${email.isUnread ? 'Unread' : 'Read'} | ${email.isInInbox ? 'Inbox' : 'Archived'}
-
+${ccField}
 ---
 
 ${email.content || 'No content available'}${attachmentsList}
