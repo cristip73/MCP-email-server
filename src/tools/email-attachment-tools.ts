@@ -34,7 +34,7 @@ const SaveAttachmentSchema = z.object({
   messageId: z.string().describe("ID of the message containing the attachment"),
   attachmentId: z.string().describe("ID of the attachment or the filename (e.g., 'f_mamj3yyo1' or 'document.pdf'). Optional if the message has only one attachment."),
   targetPath: z.string().describe("Filename or path where the attachment will be saved. Can be absolute path or relative to DEFAULT_ATTACHMENTS_FOLDER"),
-  pdfSaveOption: z.enum(["pdf_only", "md_only", "both_pdf_and_md"]).optional().default("pdf_only").describe("For PDF files: save as PDF only (default), Markdown only, or both formats"),
+  pdfSaveOption: z.enum(["pdf_only", "md_only", "both_pdf_and_md"]).optional().default("both_pdf_and_md").describe("For PDF files: save as PDF only, Markdown only, or both formats (default)"),
 });
 
 /**
@@ -225,7 +225,7 @@ export const saveAttachmentTool: Tool = {
       
       // Handle PDF conversion based on pdfSaveOption
       const isPDF = attachment.mimeType === 'application/pdf';
-      const pdfOption = params.pdfSaveOption || 'pdf_only';
+      const pdfOption = params.pdfSaveOption || 'both_pdf_and_md';
       
       let savedFiles: Array<{ path: string; type: 'pdf' | 'md'; size: number }> = [];
       
