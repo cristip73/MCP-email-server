@@ -83,7 +83,30 @@ function htmlToMarkdown(html: string): string {
                    .replace(/[ \t]+\n/g, '\n')    // Remove trailing spaces
                    .trim();                       // Remove leading/trailing whitespace
   
+  // Apply additional whitespace cleaning
+  markdown = cleanWhitespace(markdown);
+  
   return markdown;
+}
+
+// Clean excessive whitespace - minimal approach
+function cleanWhitespace(text: string): string {
+  return text
+    .split('\n')
+    .map(line => {
+      // Only fix truly excessive leading spaces (40+ spaces from HTML margins)
+      if (line.match(/^\s{40,}/)) {
+        return line.replace(/^\s+/, '');
+      }
+      
+      // Only clean up very excessive internal spaces (20+ consecutive spaces)
+      return line.replace(/\s{20,}/g, ' ');
+    })
+    .join('\n')
+    // Don't remove empty lines at all - preserve paragraph spacing
+    // Only limit truly excessive consecutive empty lines (5+)
+    .replace(/\n{6,}/g, '\n\n\n\n\n')
+    .trim();
 }
 
 // Check if content is HTML
@@ -138,11 +161,11 @@ function htmlToPlainText(html: string): string {
   
   let text = html;
   
-  // Extract text from Markdown links: [text](url) → text
-  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // Extract text from Markdown links: [text](url) → [text]
+  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '[$1]');
   
-  // Extract link text only (remove URLs): <a href="url">text</a> → text
-  text = text.replace(/<a[^>]*href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/gi, '$2');
+  // Extract link text only (remove URLs): <a href="url">text</a> → [text]
+  text = text.replace(/<a[^>]*href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/gi, '[$2]');
   
   // Convert headers to plain text
   text = text.replace(/<h([1-6])[^>]*>([^<]*)<\/h[1-6]>/gi, '\n\n$2\n\n');
@@ -169,6 +192,9 @@ function htmlToPlainText(html: string): string {
              .replace(/[ \t]+\n/g, '\n')    // Remove trailing spaces
              .trim();                       // Remove leading/trailing whitespace
   
+  // Apply additional whitespace cleaning
+  text = cleanWhitespace(text);
+  
   return text;
 }
 
@@ -188,8 +214,8 @@ function formatEmailAsMarkdown(email: any, noLinks: boolean = false): string {
   
   // Apply no_links processing to all content (HTML and plain text)
   if (noLinks) {
-    // Remove Markdown links: [text](url) → text
-    content = content.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+    // Remove Markdown links: [text](url) → [text]
+    content = content.replace(/\[([^\]]*)\]\([^)]*\)/g, '[$1]');
   }
   
   return `# Email

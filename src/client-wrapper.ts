@@ -488,20 +488,36 @@ ${options.htmlContent}
   }
 
   private extractContent(message: gmail_v1.Schema$Message): string {
-    const parts = message.payload?.parts || [];
-    const plainTextPart = parts.find(part => part.mimeType === 'text/plain');
-    const htmlPart = parts.find(part => part.mimeType === 'text/html');
-    
-    let content = '';
-    if (plainTextPart?.body?.data) {
-      content = Buffer.from(plainTextPart.body.data, 'base64').toString();
-    } else if (htmlPart?.body?.data) {
-      content = Buffer.from(htmlPart.body.data, 'base64').toString();
-    } else if (message.payload?.body?.data) {
-      content = Buffer.from(message.payload.body.data, 'base64').toString();
-    }
-    
-    return content;
+    let textContent = '';
+    let htmlContent = '';
+
+    // Recursive function to search through all nested MIME parts
+    const extractFromParts = (part: gmail_v1.Schema$MessagePart | undefined): void => {
+      if (!part) return;
+
+      // If this part has body data, extract it based on MIME type
+      if (part.body?.data) {
+        const content = Buffer.from(part.body.data, 'base64').toString('utf8');
+        if (part.mimeType === 'text/plain' && !textContent) {
+          textContent = content;
+        } else if (part.mimeType === 'text/html' && !htmlContent) {
+          htmlContent = content;
+        }
+      }
+
+      // Recursively process nested parts
+      if (part.parts && part.parts.length > 0) {
+        for (const subpart of part.parts) {
+          extractFromParts(subpart);
+        }
+      }
+    };
+
+    // Start extraction from the payload
+    extractFromParts(message.payload);
+
+    // Prefer plain text, fall back to HTML
+    return textContent || htmlContent || '';
   }
 
   private extractAttachments(message: gmail_v1.Schema$Message): Array<{
